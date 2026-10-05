@@ -81,7 +81,13 @@ export default async function MembersPage(props: PageProps<"/members">) {
                   {m.role === "admin" && <span className="font-semibold text-accent">Admin</span>}
                 </div>
                 {m.member_since && <p className="text-base font-semibold text-olive">Member since {m.member_since}</p>}
-                {m.city && <p className="text-muted">{m.city}</p>}
+                {(m.job_title || m.retired) && (
+                  <p>{[m.job_title, m.retired ? "Retired" : null].filter(Boolean).join(" · ")}</p>
+                )}
+                {m.is_business_owner && m.business_name && (
+                  <p className="font-semibold text-navy">Owner, {m.business_name}</p>
+                )}
+                {m.city && <p className="text-muted">{[m.city, m.state].filter(Boolean).join(", ")}</p>}
                 {m.email && (
                   <p className="break-all"><a href={`mailto:${m.email}`}>{m.email}</a></p>
                 )}

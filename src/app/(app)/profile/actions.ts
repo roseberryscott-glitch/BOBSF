@@ -8,20 +8,68 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const text = (fd: FormData, k: string, max = 2000) =>
   String(fd.get(k) ?? "").trim().slice(0, max) || null;
 
+function birthDate(fd: FormData) {
+  const v = String(fd.get("date_of_birth") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  const d = new Date(`${v}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.getUTCFullYear() < 1900 || d > new Date()) return null;
+  return v;
+}
+
+function website(fd: FormData) {
+  const v = text(fd, "business_website", 300);
+  if (!v) return null;
+  const withScheme = /^https?:\/\//i.test(v) ? v : `https://${v}`;
+  try {
+    return new URL(withScheme).toString();
+  } catch {
+    return null;
+  }
+}
+
 export async function saveProfile(formData: FormData) {
   const { supabase, profile } = await requireApproved({ allowIncompleteProfile: true });
   const nameVisibility = formData.get("name_visibility") === "all" ? "all" : "group";
-  const contact = String(formData.get("contact_visibility"));
-  const contactVisibility = ["leaders", "group", "all"].includes(contact) ? contact : "leaders";
+  const contactVisibility = formData.get("contact_visibility") === "all" ? "all" : "leaders";
+  const firstName = text(formData, "first_name", 80);
+  const lastName = text(formData, "last_name", 80);
+  if (!firstName || !lastName) {
+    redirect(`/profile?error=${encodeURIComponent("Please enter your first and last name.")}`);
+  }
+
+  const thisYear = new Date().getFullYear();
+  const year = Number(formData.get("joined_year"));
+  const memberSince =
+    formData.get("joined") === "year" && Number.isInteger(year) && year >= 1950 && year <= thisYear
+      ? year
+      : formData.get("joined") === "new"
+        ? thisYear
+        : profile.member_since;
+  const businessOwner = formData.get("is_business_owner") === "on";
 
   const { error } = await supabase
     .from("profiles")
     .update({
-      full_name: text(formData, "full_name", 120) ?? profile.full_name,
+      first_name: firstName,
+      last_name: lastName,
+      full_name: `${firstName} ${lastName}`,
+      date_of_birth: birthDate(formData),
+      member_since: memberSince,
       service_years: text(formData, "service_years", 60),
-      city: text(formData, "city", 120),
+      bio: text(formData, "bio", 4000),
       phone: text(formData, "phone", 40),
-      bio: text(formData, "bio", 2000),
+      address_line1: text(formData, "address_line1", 200),
+      address_line2: text(formData, "address_line2", 200),
+      city: text(formData, "city", 120),
+      state: text(formData, "state", 30),
+      postal_code: text(formData, "postal_code", 10),
+      job_title: text(formData, "job_title", 120),
+      retired: formData.get("retired") === "on",
+      is_business_owner: businessOwner,
+      business_name: businessOwner ? text(formData, "business_name", 160) : null,
+      business_website: businessOwner ? website(formData) : null,
+      business_phone: businessOwner ? text(formData, "business_phone", 40) : null,
+      business_description: businessOwner ? text(formData, "business_description", 2000) : null,
       name_visibility: nameVisibility,
       contact_visibility: contactVisibility,
       email_forum: formData.get("email_forum") === "on",

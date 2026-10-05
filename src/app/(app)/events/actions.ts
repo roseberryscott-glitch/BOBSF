@@ -1,8 +1,10 @@
 "use server";
 
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireApproved } from "@/lib/auth";
+import { requireAdmin, requireApproved } from "@/lib/auth";
+import { notifyAdminsOfEvent, notifyEventDecision } from "@/lib/notify";
 import { localInputToIso } from "@/lib/time";
 
 function readEvent(formData: FormData) {
@@ -24,16 +26,23 @@ export async function createEvent(formData: FormData) {
   if (!event.title || !event.starts_at) {
     redirect(`/events/new?error=${encodeURIComponent("Please add a title and a start time.")}`);
   }
-  // The database only allows admins, or a leader posting for their own group.
+  // The database decides whether it goes straight on the calendar (admins, and
+  // leaders for their own branch) or waits for an admin (everyone else).
   const { data, error } = await supabase
     .from("events")
     .insert({ ...event, created_by: profile.id })
-    .select("id")
+    .select("id, status")
     .single();
   if (error || !data) {
     redirect(`/events/new?error=${encodeURIComponent("You can't add an event for that group.")}`);
   }
   revalidatePath("/events");
+  if (data.status === "pending") {
+    after(() => notifyAdminsOfEvent(data.id));
+    redirect(
+      `/events?message=${encodeURIComponent("Thanks! Your event was sent to the admins and will appear on the calendar once it's approved.")}`,
+    );
+  }
   redirect(`/events/${data.id}`);
 }
 
@@ -56,6 +65,26 @@ export async function deleteEvent(id: string) {
   await supabase.from("events").delete().eq("id", id);
   revalidatePath("/events");
   redirect("/events");
+}
+
+export async function reviewEvent(id: string, approve: boolean, formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 500) || null;
+  const { data, error } = await supabase
+    .from("events")
+    .update({ status: approve ? "approved" : "declined", decline_reason: approve ? null : reason })
+    .eq("id", id)
+    .eq("status", "pending")
+    .select("id");
+  const back = String(formData.get("back") ?? "") === "admin" ? "/admin?tab=events" : `/events/${id}`;
+  const sep = back.includes("?") ? "&" : "?";
+  if (error || !data?.length) {
+    redirect(`${back}${sep}error=${encodeURIComponent("That event was already reviewed.")}`);
+  }
+  after(() => notifyEventDecision(id));
+  revalidatePath("/events");
+  revalidatePath("/admin");
+  redirect(`${back}${sep}message=${encodeURIComponent(approve ? "Approved. It's on the calendar now." : "Declined. The member has been told.")}`);
 }
 
 export async function setRsvp(id: string, going: boolean) {

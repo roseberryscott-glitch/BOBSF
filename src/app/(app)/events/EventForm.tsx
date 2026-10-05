@@ -22,11 +22,11 @@ export function EventForm({
   values?: Values;
   submitLabel: string;
 }) {
-  // Leaders can only post for their own group; admins can post for anyone.
-  const groupOptions =
-    profile.role === "admin"
-      ? [{ id: "all", name: "All members" }, ...GROUPS.map((g) => ({ id: g.id, name: `${g.name} only` }))]
-      : GROUPS.filter((g) => g.id === profile.group_id).map((g) => ({ id: g.id, name: `${g.name} only` }));
+  // Admins can post for anyone; everyone else for all members or their own group.
+  const groupOptions = [
+    { id: "all", name: "All members" },
+    ...GROUPS.filter((g) => profile.role === "admin" || g.id === profile.group_id).map((g) => ({ id: g.id, name: `${g.name} only` })),
+  ];
 
   return (
     <form action={action} className="card space-y-5">
@@ -51,7 +51,7 @@ export function EventForm({
       </div>
       <div>
         <label className="label" htmlFor="group_id">Who is it for?</label>
-        <select className="input" id="group_id" name="group_id" defaultValue={values.group_id ?? (profile.role === "admin" ? "all" : profile.group_id)}>
+        <select className="input" id="group_id" name="group_id" defaultValue={values.group_id ?? (profile.role === "leader" ? profile.group_id : "all")}>
           {groupOptions.map((o) => (
             <option key={o.id} value={o.id}>{o.name}</option>
           ))}

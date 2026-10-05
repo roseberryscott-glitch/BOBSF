@@ -34,6 +34,7 @@ export default async function Home(props: PageProps<"/">) {
     supabase
       .from("events")
       .select("id, title, starts_at, group_id, location")
+      .eq("status", "approved")
       .gte("starts_at", upcomingCutoffIso())
       .order("starts_at")
       .limit(4),
