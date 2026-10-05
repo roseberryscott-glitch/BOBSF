@@ -8,7 +8,7 @@ import { GROUPS } from "@/lib/groups";
 import { getBranchLogos } from "@/lib/site";
 import { formatDateTime } from "@/lib/time";
 import type { Profile } from "@/lib/types";
-import { resolveReport, setRole, setStatus } from "./actions";
+import { deleteMember, resolveReport, setRole, setStatus } from "./actions";
 import { ReviewButtons } from "../events/ReviewButtons";
 import { BranchLogoEditor } from "./BranchLogoEditor";
 
@@ -163,6 +163,22 @@ export default async function AdminPage(props: PageProps<"/admin">) {
                     </form>
                   ))}
               </div>
+              {p.id !== meId && (
+                <details className="mt-3">
+                  <summary className="cursor-pointer font-semibold text-danger">Delete member</summary>
+                  <form action={deleteMember.bind(null, p.id)} className="mt-3 space-y-3 rounded-lg border border-danger/40 p-4">
+                    <p>
+                      This permanently erases {p.full_name}&apos;s account, profile and business listing. It can&apos;t be
+                      undone. Their forum posts stay, shown as &ldquo;a former member&rdquo;.
+                    </p>
+                    <div>
+                      <label className="label text-base" htmlFor={`confirm-${p.id}`}>Type DELETE to confirm</label>
+                      <input className="input max-w-xs" id={`confirm-${p.id}`} name="confirm" autoComplete="off" required />
+                    </div>
+                    <button className="btn-danger btn-small">Delete {p.full_name} for good</button>
+                  </form>
+                </details>
+              )}
             </li>
           ))}
         </ul>
