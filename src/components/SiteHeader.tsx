@@ -53,18 +53,22 @@ export async function SiteHeader() {
         {/* Wide screens */}
         <nav aria-label="Main" className="ml-6 hidden flex-1 items-center gap-1 min-[1140px]:flex">
           {aboutLinks.length > 0 && (
-            <details className="group relative">
-              <summary className={`${link} flex cursor-pointer list-none items-center gap-1`}>
-                About <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
-              </summary>
-              <div className="absolute left-0 mt-2 w-56 overflow-hidden rounded-xl bg-white py-2 text-navy shadow-2xl">
-                {aboutLinks.map((l) => (
-                  <Link key={l.href} href={l.href} className="block px-4 py-2 font-semibold text-navy no-underline hover:bg-slate-100">
-                    {l.label}
-                  </Link>
-                ))}
+            // Opens while the mouse is over "About" (or when tabbing to it)
+            // and closes as soon as the mouse moves away.
+            <div className="group relative">
+              <button type="button" aria-haspopup="true" className={`${link} flex cursor-pointer items-center gap-1`}>
+                About <ChevronDown className="h-4 w-4 transition group-hover:rotate-180 group-has-[:focus-visible]:rotate-180" />
+              </button>
+              <div className="invisible absolute left-0 top-full pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-has-[:focus-visible]:visible group-has-[:focus-visible]:opacity-100">
+                <div className="w-56 overflow-hidden rounded-xl bg-white py-2 text-navy shadow-2xl">
+                  {aboutLinks.map((l) => (
+                    <Link key={l.href} href={l.href} className="block px-4 py-2 font-semibold text-navy no-underline hover:bg-slate-100">
+                      {l.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </details>
+            </div>
           )}
           {memberLinks.map((l) => (
             <Link key={l.href} href={l.href} className={link}>{l.label}</Link>
