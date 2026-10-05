@@ -37,7 +37,10 @@ export function PhotoUpload({ userId }: { userId: string }) {
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="label" htmlFor="photo">Choose a photo (JPG or PNG)</label>
-      <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" className="block" />
+      <input id="photo" name="photo" type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="block max-w-full file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-xl file:border-0 file:bg-navy file:px-4 file:py-1 file:text-base file:font-semibold file:text-white file:shadow-sm hover:file:bg-[var(--navy-2)]"
+      />
       <button className="btn btn-small" disabled={busy}>Upload photo</button>
       {status && <p role="status">{status}</p>}
     </form>

@@ -49,9 +49,8 @@ export const PAGE_ROUTES: Record<string, string> = {
   about: "/about",
   founders: "/founders",
   charities: "/charities",
-  elected: "/elected",
 };
-export const MENU_PAGES = ["about", "founders", "charities", "elected"];
+export const MENU_PAGES = ["about", "founders", "charities"];
 
 export const SECTION_LABELS: Record<Section["type"], string> = {
   hero: "Big banner",

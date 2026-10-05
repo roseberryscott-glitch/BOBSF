@@ -3,14 +3,13 @@ import { PageView } from "@/components/cms/PageView";
 import { getViewer } from "@/lib/auth";
 import { getBranchLogos, getPage } from "@/lib/site";
 
-// Admin-editable pages: /about, /founders, /charities, /elected, and /welcome
+// Admin-editable pages: /about, /founders, /charities, and /welcome
 // (the public front page, also shown at / to visitors who aren't signed in).
 const SLUGS: Record<string, string> = {
   welcome: "home",
   about: "about",
   founders: "founders",
   charities: "charities",
-  elected: "elected",
 };
 
 export async function generateMetadata(props: PageProps<"/[page]">) {

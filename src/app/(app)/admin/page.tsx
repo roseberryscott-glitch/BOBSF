@@ -194,7 +194,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           Open a page and click <strong>Edit this page</strong> to change its words, pictures and links.
         </p>
         <ul className="space-y-3">
-          {(data ?? []).map((pg) => (
+          {(data ?? []).filter((pg) => pg.slug in PAGE_ROUTES).map((pg) => (
             <li key={pg.slug} className="card flex flex-wrap items-center justify-between gap-3">
               <div>
                 <Link href={PAGE_ROUTES[pg.slug] ?? "/"} className="text-xl font-semibold">{pg.title}</Link>

@@ -14,24 +14,45 @@ function Logo() {
   );
 }
 
+// Red circle with a white number, e.g. registrations waiting for an admin.
+function Badge({ count, label }: { count: number; label: string }) {
+  if (!count) return null;
+  return (
+    <span
+      aria-label={label}
+      className="ml-1.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-sm font-bold leading-none text-white"
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export async function SiteHeader() {
   const { supabase, profile } = await getViewer();
   const approved = profile?.status === "approved";
-  const pages = await getMenuPages(supabase);
+  const isAdmin = approved && profile.role === "admin";
+  const [pages, pending] = await Promise.all([
+    getMenuPages(supabase),
+    isAdmin
+      ? supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending")
+      : Promise.resolve({ count: 0 }),
+  ]);
+  const pendingCount = pending.count ?? 0;
+  const pendingLabel = `${pendingCount} ${pendingCount === 1 ? "registration" : "registrations"} waiting`;
 
   // "About" pages that are switched on (admins hide them from the editor).
   const aboutLinks = MENU_PAGES.flatMap((slug) => {
     const p = pages.find((x) => x.slug === slug);
     return p && p.visible ? [{ href: PAGE_ROUTES[slug], label: p.title }] : [];
   });
-  const memberLinks = approved
+  const memberLinks: { href: string; label: string; badge?: number }[] = approved
     ? [
         { href: "/events", label: "Calendar" },
         { href: "/forums", label: "Forums" },
         { href: "/members", label: "Members" },
         { href: "/support", label: "Support Members" },
         ...(profile.role !== "member" ? [{ href: "/email", label: "Email" }] : []),
-        ...(profile.role === "admin" ? [{ href: "/admin", label: "Admin" }] : []),
+        ...(isAdmin ? [{ href: pendingCount ? "/admin?tab=pending" : "/admin", label: "Admin", badge: pendingCount }] : []),
       ]
     : [];
   const accountLinks = profile
@@ -71,7 +92,10 @@ export async function SiteHeader() {
             </div>
           )}
           {memberLinks.map((l) => (
-            <Link key={l.href} href={l.href} className={link}>{l.label}</Link>
+            <Link key={l.href} href={l.href} className={`${link} inline-flex items-center`}>
+              {l.label}
+              {l.badge ? <Badge count={l.badge} label={pendingLabel} /> : null}
+            </Link>
           ))}
         </nav>
         <div className="ml-auto hidden items-center gap-1 min-[1140px]:flex">
@@ -95,11 +119,13 @@ export async function SiteHeader() {
         <details className="group ml-auto min-[1140px]:hidden">
           <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-lg px-3 font-semibold hover:bg-white/10">
             <Menu className="h-6 w-6" /> Menu
+            <Badge count={pendingCount} label={pendingLabel} />
           </summary>
           <nav aria-label="Main" className="absolute inset-x-0 top-full border-t border-white/10 bg-navy px-4 pb-4 shadow-2xl">
             {[...memberLinks, ...aboutLinks, ...accountLinks].map((l) => (
-              <Link key={l.href} href={l.href} className="block border-b border-white/10 py-3 text-lg font-semibold text-white no-underline">
+              <Link key={l.href} href={l.href} className="flex items-center border-b border-white/10 py-3 text-lg font-semibold text-white no-underline">
                 {l.label}
+                {"badge" in l && typeof l.badge === "number" ? <Badge count={l.badge} label={pendingLabel} /> : null}
               </Link>
             ))}
             {profile && (
