@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BranchLogo } from "@/components/BranchLogo";
 import { Messages } from "@/components/Messages";
 import { requireApproved } from "@/lib/auth";
+import { getBranchLogos } from "@/lib/site";
 import { formatDateTime } from "@/lib/time";
 import { createThread } from "../actions";
 
@@ -23,8 +25,13 @@ export default async function ForumPage(props: PageProps<"/forums/[forum]">) {
   return (
     <div>
       <p className="mb-4"><Link href="/forums">← All forums</Link></p>
-      <h1 className="mb-2 text-3xl font-bold">{forum.name}</h1>
-      <p className="mb-6 text-muted">{forum.description}</p>
+      <div className="mb-8 flex flex-wrap items-center gap-5">
+        {forum.group_id && <BranchLogo groupId={forum.group_id} logos={await getBranchLogos(supabase)} size={80} />}
+        <div>
+          <h1 className="page-title mb-1">{forum.name}</h1>
+          <p className="text-muted">{forum.description}</p>
+        </div>
+      </div>
       <Messages error={sp.error} />
 
       {threads?.length ? (

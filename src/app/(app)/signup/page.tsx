@@ -11,8 +11,8 @@ export default async function SignupPage(props: PageProps<"/signup">) {
     <div className="mx-auto max-w-xl">
       <h1 className="page-title">Ask to join BOBSF</h1>
       <p className="mb-6">
-        An admin reviews every registration before you can see the site. You&apos;ll get an email
-        once you&apos;re approved.
+        An admin reviews every registration before you can see the site. Once you&apos;re approved,
+        you&apos;ll fill out your member profile.
       </p>
       <Messages error={sp.error} />
       <form action={signUp} className="card space-y-6">
@@ -41,10 +41,6 @@ export default async function SignupPage(props: PageProps<"/signup">) {
           </div>
           <span className="hint">If you served in more than one branch, pick the one you most identify with.</span>
         </fieldset>
-        <div>
-          <label className="label" htmlFor="service_years">Years of service (optional)</label>
-          <input className="input" id="service_years" name="service_years" placeholder="e.g. 1998–2006" />
-        </div>
         <div>
           <label className="label" htmlFor="verification_note">How can we confirm who you are?</label>
           <textarea className="input min-h-28" id="verification_note" name="verification_note" />

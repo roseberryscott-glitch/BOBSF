@@ -16,7 +16,6 @@ export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const groupId = String(formData.get("group_id") ?? "");
-  const serviceYears = String(formData.get("service_years") ?? "").trim();
   const verificationNote = String(formData.get("verification_note") ?? "").trim();
   const consent = formData.get("consent") === "on";
 
@@ -26,7 +25,7 @@ export async function signUp(formData: FormData) {
   if (!consent) fail("Please check the box to agree before joining.");
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -34,7 +33,6 @@ export async function signUp(formData: FormData) {
       data: {
         full_name: fullName,
         group_id: groupId,
-        service_years: serviceYears,
         verification_note: verificationNote,
         consent: "true",
       },
@@ -43,7 +41,12 @@ export async function signUp(formData: FormData) {
   if (error) fail(error.message);
 
   after(() => notifyAdminsOfSignup(fullName, groupId));
+  // With email confirmation turned off in Supabase there's a session already.
   redirect(
-    `/pending?message=${encodeURIComponent("Thanks! Please check your email and click the link to confirm your address.")}`,
+    `/pending?message=${encodeURIComponent(
+      data.session
+        ? "Thanks! Your registration has been sent to the admins."
+        : "Thanks! Please check your email and click the link to confirm your address.",
+    )}`,
   );
 }

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { BranchBadge } from "@/components/BranchBadge";
+import { BranchLogo } from "@/components/BranchLogo";
 import { requireApproved } from "@/lib/auth";
 import { GROUPS, getGroup } from "@/lib/groups";
 import { signPhotos } from "@/lib/photos";
+import { getBranchLogos } from "@/lib/site";
 import type { DirectoryEntry } from "@/lib/types";
 
 export const metadata = { title: "Members" };
@@ -22,11 +24,15 @@ export default async function MembersPage(props: PageProps<"/members">) {
 
   const selected = typeof sp.group === "string" && getGroup(sp.group) ? sp.group : profile.group_id;
   const shown = members.filter((m) => m.group_id === selected);
-  const photos = await signPhotos(supabase, shown.map((m) => m.photo_path));
+  const [photos, logos] = await Promise.all([
+    signPhotos(supabase, shown.map((m) => m.photo_path)),
+    getBranchLogos(supabase),
+  ]);
+  const group = getGroup(selected);
 
   return (
     <div>
-      <h1 className="page-title">Members</h1>
+      <h1 className="sr-only">Members</h1>
       <nav aria-label="Groups" className="mb-6 flex flex-wrap gap-2">
         {tabs.map((g) => (
           <Link
@@ -40,6 +46,20 @@ export default async function MembersPage(props: PageProps<"/members">) {
         ))}
       </nav>
 
+      <div className="hero-bg relative mb-8 overflow-hidden rounded-2xl text-white shadow-lg">
+        <div className="stars absolute inset-0 opacity-30" aria-hidden="true" />
+        <div className="relative flex flex-wrap items-center gap-6 p-6 sm:p-8">
+          <BranchLogo groupId={selected} logos={logos} size={110} />
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.25em] text-gold">Members</p>
+            <h2 className="font-display text-4xl font-bold uppercase sm:text-5xl">{group?.name}</h2>
+            <p className="mt-1 text-slate-300">
+              {shown.length} {shown.length === 1 ? "member" : "members"} you can see
+            </p>
+          </div>
+        </div>
+      </div>
+
       {selected !== profile.group_id && profile.role !== "admin" && (
         <p className="notice mb-6">
           You&apos;re seeing the {getGroup(selected)?.name} members who chose to share their name with everyone.
@@ -51,7 +71,7 @@ export default async function MembersPage(props: PageProps<"/members">) {
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2">
           {shown.map((m) => (
-            <li key={m.id} className="card flex gap-4">
+            <li key={m.id} className="lift-card flex gap-4 p-5">
               <Avatar name={m.full_name} url={m.photo_path ? photos.get(m.photo_path) : null} />
               <div className="min-w-0">
                 <Link href={`/members/${m.id}`} className="text-xl font-semibold">{m.full_name}</Link>
@@ -60,6 +80,7 @@ export default async function MembersPage(props: PageProps<"/members">) {
                   {m.role === "leader" && <span className="font-semibold text-accent">Group leader</span>}
                   {m.role === "admin" && <span className="font-semibold text-accent">Admin</span>}
                 </div>
+                {m.member_since && <p className="text-base font-semibold text-olive">Member since {m.member_since}</p>}
                 {m.city && <p className="text-muted">{m.city}</p>}
                 {m.email && (
                   <p className="break-all"><a href={`mailto:${m.email}`}>{m.email}</a></p>

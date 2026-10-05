@@ -28,6 +28,13 @@ export async function setRole(memberId: string, formData: FormData) {
     new_group: String(formData.get("group_id")),
   });
   if (error) redirect(`/admin?tab=members&error=${encodeURIComponent(error.message)}`);
+
+  const since = Number(formData.get("member_since"));
+  const { error: sinceError } = await supabase.rpc("admin_set_member_since", {
+    member: memberId,
+    since: Number.isInteger(since) && since >= 1900 && since <= 2200 ? since : null,
+  });
+  if (sinceError) redirect(`/admin?tab=members&error=${encodeURIComponent(sinceError.message)}`);
   revalidatePath("/admin");
   redirect(`/admin?tab=members&message=${encodeURIComponent("Saved.")}`);
 }

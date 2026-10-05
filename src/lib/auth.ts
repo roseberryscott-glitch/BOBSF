@@ -20,10 +20,12 @@ export async function getViewer() {
 
 // For pages only approved members may see. Sends everyone else to the
 // right place (login, or the waiting-for-approval page).
-export async function requireApproved() {
+export async function requireApproved({ allowIncompleteProfile = false } = {}) {
   const viewer = await getViewer();
   if (!viewer.user) redirect("/login");
   if (!viewer.profile || viewer.profile.status !== "approved") redirect("/pending");
+  // Newly approved members fill out their member profile first.
+  if (!allowIncompleteProfile && viewer.profile.profile_completed_at === null) redirect("/profile?welcome=1");
   return { supabase: viewer.supabase, user: viewer.user, profile: viewer.profile };
 }
 

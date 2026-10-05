@@ -20,13 +20,24 @@ function Choice({ name, value, checked, children }: { name: string; value: strin
 
 export default async function ProfilePage(props: PageProps<"/profile">) {
   const sp = await props.searchParams;
-  const { supabase, profile: p } = await requireApproved();
+  const { supabase, profile: p } = await requireApproved({ allowIncompleteProfile: true });
   const photos = await signPhotos(supabase, [p.photo_path]);
   const group = groupName(p.group_id);
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <h1 className="page-title">My profile</h1>
+      {p.profile_completed_at ? (
+        <h1 className="page-title">My profile</h1>
+      ) : (
+        <div className="hero-bg rounded-2xl p-8 text-white">
+          <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-gold">You&apos;re approved</p>
+          <h1 className="font-display text-4xl font-bold uppercase">Complete your member profile</h1>
+          <p className="mt-3 text-lg text-slate-200">
+            Add a photo and a few details so fellow members can find you, then choose what you&apos;d
+            like to share. Click Save profile at the bottom when you&apos;re done.
+          </p>
+        </div>
+      )}
       <Messages error={sp.error} message={sp.message} />
 
       <section className="card" aria-labelledby="photo-h">
@@ -49,6 +60,7 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
             Group: <BranchBadge groupId={p.group_id} />
             <span className="text-muted">(ask an admin if this needs to change)</span>
           </p>
+          {p.member_since && <p className="font-semibold text-olive">Member since {p.member_since}</p>}
           <div>
             <label className="label" htmlFor="full_name">Name</label>
             <input className="input" id="full_name" name="full_name" defaultValue={p.full_name} required />
@@ -112,7 +124,7 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
           </label>
         </section>
 
-        <button className="btn">Save profile</button>
+        <button className="btn">{p.profile_completed_at ? "Save profile" : "Save and continue"}</button>
       </form>
 
       <section className="card space-y-4 border-danger" aria-labelledby="delete-h">

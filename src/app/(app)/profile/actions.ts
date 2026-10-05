@@ -9,7 +9,7 @@ const text = (fd: FormData, k: string, max = 2000) =>
   String(fd.get(k) ?? "").trim().slice(0, max) || null;
 
 export async function saveProfile(formData: FormData) {
-  const { supabase, profile } = await requireApproved();
+  const { supabase, profile } = await requireApproved({ allowIncompleteProfile: true });
   const nameVisibility = formData.get("name_visibility") === "all" ? "all" : "group";
   const contact = String(formData.get("contact_visibility"));
   const contactVisibility = ["leaders", "group", "all"].includes(contact) ? contact : "leaders";
@@ -26,18 +26,22 @@ export async function saveProfile(formData: FormData) {
       contact_visibility: contactVisibility,
       email_forum: formData.get("email_forum") === "on",
       email_announcements: formData.get("email_announcements") === "on",
+      profile_completed_at: profile.profile_completed_at ?? new Date().toISOString(),
     })
     .eq("id", profile.id);
 
   if (error) redirect(`/profile?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/", "layout");
+  if (!profile.profile_completed_at) {
+    redirect(`/?message=${encodeURIComponent("Welcome aboard! Your member profile is saved.")}`);
+  }
   redirect(`/profile?message=${encodeURIComponent("Your profile has been saved.")}`);
 }
 
 // The browser uploads the file straight to storage (see PhotoUpload), which
 // avoids hosting request-size limits; this just records the new path.
 export async function setPhoto(path: string) {
-  const { supabase, profile } = await requireApproved();
+  const { supabase, profile } = await requireApproved({ allowIncompleteProfile: true });
   if (!path.startsWith(`${profile.id}/`)) throw new Error("Invalid photo path");
 
   if (profile.photo_path && profile.photo_path !== path) {
@@ -48,7 +52,7 @@ export async function setPhoto(path: string) {
 }
 
 export async function removePhoto() {
-  const { supabase, profile } = await requireApproved();
+  const { supabase, profile } = await requireApproved({ allowIncompleteProfile: true });
   if (profile.photo_path) {
     await supabase.storage.from("avatars").remove([profile.photo_path]);
     await supabase.from("profiles").update({ photo_path: null }).eq("id", profile.id);
@@ -59,7 +63,7 @@ export async function removePhoto() {
 
 // Required by the app stores: members can delete their own account.
 export async function deleteAccount(formData: FormData) {
-  const { supabase, profile } = await requireApproved();
+  const { supabase, profile } = await requireApproved({ allowIncompleteProfile: true });
   if (formData.get("confirm") !== "DELETE") {
     redirect(`/profile?error=${encodeURIComponent('Type DELETE in the box to confirm.')}`);
   }

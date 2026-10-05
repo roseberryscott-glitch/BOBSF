@@ -123,6 +123,31 @@ exception when raise_exception then
   if sqlerrm like 'FAILED%' then raise; end if;
 end $$;
 
+-- Site pages: admin edits, hides; members and visitors can't edit or see hidden pages
+update site_pages set visible = false where slug = 'elected';
+update site_pages set sections = '[]'::jsonb where slug = 'about';
+select pg_temp.check((select sections from site_pages where slug = 'about') = '[]'::jsonb, 'admin edits a page');
+select admin_set_member_since('00000000-0000-0000-0000-00000000000d', 2011);
+
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+update site_pages set title = 'hacked' where slug = 'home';
+select pg_temp.check((select title from site_pages where slug = 'home') = 'Welcome', 'member cannot edit pages');
+select pg_temp.check(not exists (select 1 from site_pages where slug = 'elected'), 'hidden page hidden from members');
+select pg_temp.check((select member_since from member_directory() where full_name = 'Nia Navy') = 2011, 'member since shown in directory');
+select pg_temp.check((select member_since from member_directory() where full_name = 'Lee Leader') = extract(year from now())::int, 'member since defaults to approval year');
+do $$ begin
+  perform admin_set_member_since(auth.uid(), 1990);
+  raise exception 'FAILED: member changed member since';
+exception when raise_exception then
+  if sqlerrm like 'FAILED%' then raise; end if;
+end $$;
+
+reset role;
+set local role anon;
+select pg_temp.act_as('');
+select pg_temp.check((select count(*) from site_pages) = 4, 'visitors see the 4 visible public pages');
+select pg_temp.check(exists (select 1 from site_settings where key = 'branch_logos'), 'visitors can read branch logos');
+
 reset role;
 delete from auth.users where email = 'm1@x.org';
 select pg_temp.check((select author_name from posts where body = 'first post') = 'Former member', 'deleted member anonymized');

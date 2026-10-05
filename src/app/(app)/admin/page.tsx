@@ -2,10 +2,13 @@ import Link from "next/link";
 import { BranchBadge } from "@/components/BranchBadge";
 import { Messages } from "@/components/Messages";
 import { requireAdmin } from "@/lib/auth";
+import { PAGE_ROUTES } from "@/lib/content";
 import { GROUPS } from "@/lib/groups";
+import { getBranchLogos } from "@/lib/site";
 import { formatDateTime } from "@/lib/time";
 import type { Profile } from "@/lib/types";
 import { resolveReport, setRole, setStatus } from "./actions";
+import { BranchLogoEditor } from "./BranchLogoEditor";
 
 export const metadata = { title: "Admin" };
 
@@ -13,6 +16,8 @@ const TABS = [
   { id: "pending", label: "Registrations" },
   { id: "members", label: "Members" },
   { id: "reports", label: "Reported posts" },
+  { id: "pages", label: "Pages" },
+  { id: "logos", label: "Branch logos" },
 ];
 
 export default async function AdminPage(props: PageProps<"/admin">) {
@@ -46,6 +51,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
       {tab === "pending" && <Pending />}
       {tab === "members" && <Members q={q} meId={me.id} />}
       {tab === "reports" && <Reports />}
+      {tab === "pages" && <Pages />}
+      {tab === "logos" && <BranchLogoEditor initial={await getBranchLogos(supabase)} />}
     </div>
   );
 
@@ -126,6 +133,18 @@ export default async function AdminPage(props: PageProps<"/admin">) {
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <label className="label text-base" htmlFor={`since-${p.id}`}>Member since</label>
+                    <input
+                      className="input w-28"
+                      id={`since-${p.id}`}
+                      name="member_since"
+                      type="number"
+                      min={1900}
+                      max={2200}
+                      defaultValue={p.member_since ?? ""}
+                    />
+                  </div>
                   <button className="btn-secondary btn-small">Save</button>
                 </form>
                 {p.id !== meId &&
@@ -139,6 +158,31 @@ export default async function AdminPage(props: PageProps<"/admin">) {
                     </form>
                   ))}
               </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  async function Pages() {
+    const { data } = await supabase.from("site_pages").select("slug, title, visible, is_public, updated_at").order("slug");
+    return (
+      <div>
+        <p className="mb-4">
+          Open a page and click <strong>Edit this page</strong> to change its words, pictures and links.
+        </p>
+        <ul className="space-y-3">
+          {(data ?? []).map((pg) => (
+            <li key={pg.slug} className="card flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <Link href={PAGE_ROUTES[pg.slug] ?? "/"} className="text-xl font-semibold">{pg.title}</Link>
+                <p className="text-muted">
+                  {pg.visible ? "Shown" : "Hidden"} · {pg.is_public ? "anyone can see it" : "members only"} · last
+                  changed {formatDateTime(pg.updated_at)}
+                </p>
+              </div>
+              <Link className="btn-secondary btn-small" href={PAGE_ROUTES[pg.slug] ?? "/"}>Open and edit</Link>
             </li>
           ))}
         </ul>

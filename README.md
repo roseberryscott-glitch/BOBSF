@@ -14,6 +14,9 @@ The members-only website for Band of Brothers Sisters and Friends. It has a cale
 | Bulk email: leaders to their group, admins to everyone | `/email` |
 | Moderation: hide posts, lock or pin threads, reported posts, suspend | thread pages, `/admin` |
 | Account deletion, privacy policy, code of conduct | `/profile`, `/privacy`, `/terms` |
+| Welcome, About, Founders, Charities and Elected Members pages, edited in place by admins | `/welcome`, `/about`, … (click **Edit this page**) |
+| Branch logos (uploaded by admins) and "Member since" year | Admin → Branch logos, Admin → Members |
+| New members complete their profile after approval | `/profile` |
 
 The privacy rules (who can see names, contact info, forums and events) are enforced by the database itself, in `supabase/migrations/`. The web pages only display what the database allows.
 
@@ -69,5 +72,5 @@ To run the tests on plain Postgres without Supabase, apply `supabase/tests/supab
 createdb bobsf_test
 psql -d bobsf_test -v ON_ERROR_STOP=1 -f supabase/tests/supabase_stub.sql \
   -f supabase/migrations/20260929000000_init.sql -f supabase/migrations/20261005000000_groups_rls.sql \
-  -f supabase/tests/privacy_test.sql
+  -f supabase/migrations/20261005010000_site_content.sql -f supabase/tests/privacy_test.sql
 ```

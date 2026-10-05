@@ -1,48 +1,111 @@
+import { ChevronDown, Menu } from "lucide-react";
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
+import { MENU_PAGES, PAGE_ROUTES } from "@/lib/content";
+import { getMenuPages } from "@/lib/site";
+
+function Logo() {
+  return (
+    <Link href="/" className="flex items-center gap-2 text-white no-underline">
+      <svg viewBox="0 0 64 72" className="h-9 w-8" aria-hidden="true">
+        <path d="M32 2 60 12v22c0 18-12 30-28 36C16 64 4 52 4 34V12z" fill="#c9a227" />
+        <path d="m32 16 4.4 9.4 10.3 1.1-7.7 7 2.2 10.2L32 38.5l-9.2 5.2L25 33.5l-7.7-7 10.3-1.1z" fill="#0b1d33" />
+      </svg>
+      <span className="font-display text-2xl font-bold tracking-wider">BOBSF</span>
+    </Link>
+  );
+}
 
 export async function SiteHeader() {
-  const { profile } = await getViewer();
+  const { supabase, profile } = await getViewer();
   const approved = profile?.status === "approved";
+  const pages = await getMenuPages(supabase);
+
+  // "About" pages that are switched on (admins hide them from the editor).
+  const aboutLinks = MENU_PAGES.flatMap((slug) => {
+    const p = pages.find((x) => x.slug === slug);
+    return p && p.visible ? [{ href: PAGE_ROUTES[slug], label: p.title }] : [];
+  });
+  const memberLinks = approved
+    ? [
+        { href: "/events", label: "Calendar" },
+        { href: "/forums", label: "Forums" },
+        { href: "/members", label: "Members" },
+        ...(profile.role !== "member" ? [{ href: "/email", label: "Email" }] : []),
+        ...(profile.role === "admin" ? [{ href: "/admin", label: "Admin" }] : []),
+      ]
+    : [];
+  const accountLinks = profile
+    ? approved
+      ? [{ href: "/profile", label: "My profile" }]
+      : []
+    : [
+        { href: "/login", label: "Sign in" },
+        { href: "/signup", label: "Join" },
+      ];
+
+  const link = "rounded-lg px-3 py-2 font-semibold text-white no-underline hover:bg-white/10";
 
   return (
-    <header className="bg-primary text-white">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-        <Link href="/" className="text-2xl font-bold text-white no-underline">
-          BOBSF
-        </Link>
-        <nav aria-label="Main" className="flex flex-1 flex-wrap items-center gap-x-5 gap-y-1 text-lg">
-          {approved && (
-            <>
-              <Link className="text-white" href="/events">Calendar</Link>
-              <Link className="text-white" href="/forums">Forums</Link>
-              <Link className="text-white" href="/members">Members</Link>
-              {(profile.role === "leader" || profile.role === "admin") && (
-                <Link className="text-white" href="/email">Email</Link>
-              )}
-              {profile.role === "admin" && (
-                <Link className="text-white" href="/admin">Admin</Link>
-              )}
-            </>
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-navy/95 text-white shadow-lg backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2">
+        <Logo />
+
+        {/* Wide screens */}
+        <nav aria-label="Main" className="ml-6 hidden flex-1 items-center gap-1 lg:flex">
+          {aboutLinks.length > 0 && (
+            <details className="group relative">
+              <summary className={`${link} flex cursor-pointer list-none items-center gap-1`}>
+                About <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+              </summary>
+              <div className="absolute left-0 mt-2 w-56 overflow-hidden rounded-xl bg-white py-2 text-navy shadow-2xl">
+                {aboutLinks.map((l) => (
+                  <Link key={l.href} href={l.href} className="block px-4 py-2 font-semibold text-navy no-underline hover:bg-slate-100">
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </details>
           )}
+          {memberLinks.map((l) => (
+            <Link key={l.href} href={l.href} className={link}>{l.label}</Link>
+          ))}
         </nav>
-        <div className="flex items-center gap-4 text-lg">
-          {profile ? (
-            <>
-              {approved && (
-                <Link className="text-white" href="/profile">My profile</Link>
-              )}
-              <form action="/auth/signout" method="post">
-                <button className="cursor-pointer text-white underline underline-offset-4">Sign out</button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link className="text-white" href="/login">Sign in</Link>
-              <Link className="text-white" href="/signup">Join</Link>
-            </>
+        <div className="ml-auto hidden items-center gap-1 lg:flex">
+          {accountLinks.map((l) =>
+            l.href === "/signup" ? (
+              <Link key={l.href} href={l.href} className="ml-2 rounded-lg bg-gold px-4 py-2 font-bold text-navy no-underline hover:bg-[var(--gold-2)]">
+                {l.label}
+              </Link>
+            ) : (
+              <Link key={l.href} href={l.href} className={link}>{l.label}</Link>
+            ),
+          )}
+          {profile && (
+            <form action="/auth/signout" method="post">
+              <button className={`${link} cursor-pointer`}>Sign out</button>
+            </form>
           )}
         </div>
+
+        {/* Phones and tablets */}
+        <details className="group ml-auto lg:hidden">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-lg px-3 font-semibold hover:bg-white/10">
+            <Menu className="h-6 w-6" /> Menu
+          </summary>
+          <nav aria-label="Main" className="absolute inset-x-0 top-full border-t border-white/10 bg-navy px-4 pb-4 shadow-2xl">
+            {[...memberLinks, ...aboutLinks, ...accountLinks].map((l) => (
+              <Link key={l.href} href={l.href} className="block border-b border-white/10 py-3 text-lg font-semibold text-white no-underline">
+                {l.label}
+              </Link>
+            ))}
+            {profile && (
+              <form action="/auth/signout" method="post">
+                <button className="w-full py-3 text-left text-lg font-semibold text-white">Sign out</button>
+              </form>
+            )}
+          </nav>
+        </details>
       </div>
     </header>
   );

@@ -21,6 +21,8 @@ export type Profile = {
   unsubscribe_token: string;
   consented_at: string | null;
   approved_at: string | null;
+  member_since: number | null;
+  profile_completed_at: string | null;
   created_at: string;
 };
 
@@ -36,4 +38,5 @@ export type DirectoryEntry = {
   photo_path: string | null;
   email: string | null;
   phone: string | null;
+  member_since: number | null;
 };
