@@ -20,14 +20,16 @@ export function PageView({
   isAdmin,
   logos,
   watermark = false,
+  startEditing = false,
 }: {
   page: SitePage;
   isAdmin: boolean;
   logos: BranchLogos;
   watermark?: boolean;
+  startEditing?: boolean;
 }) {
   const router = useRouter();
-  const [edit, setEdit] = useState(false);
+  const [edit, setEdit] = useState(isAdmin && startEditing);
   const [draft, setDraft] = useState(page);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +94,17 @@ export function PageView({
         <button type="button" onClick={start} className="edit-fab">
           <Pencil className="h-5 w-5" /> Edit this page
         </button>
+      )}
+
+      {isAdmin && !edit && (
+        <div className="border-b border-gold/40 bg-gold/15">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2">
+            <span className="font-semibold text-navy">You&apos;re an admin. You can change anything on this page.</span>
+            <button type="button" onClick={start} className="btn btn-small">
+              <Pencil className="mr-1 h-4 w-4" /> Edit this page
+            </button>
+          </div>
+        </div>
       )}
 
       {isAdmin && !edit && !page.visible && (

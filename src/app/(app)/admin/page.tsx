@@ -186,7 +186,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
                   changed {formatDateTime(pg.updated_at)}
                 </p>
               </div>
-              <Link className="btn-secondary btn-small" href={PAGE_ROUTES[pg.slug] ?? "/"}>Open and edit</Link>
+              <Link className="btn btn-small" href={`${PAGE_ROUTES[pg.slug] ?? "/welcome"}?edit=1`}>Edit page</Link>
             </li>
           ))}
         </ul>

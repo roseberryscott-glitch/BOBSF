@@ -23,6 +23,7 @@ export async function generateMetadata(props: PageProps<"/[page]">) {
 
 export default async function SitePage(props: PageProps<"/[page]">) {
   const { page } = await props.params;
+  const sp = await props.searchParams;
   const slug = SLUGS[page];
   if (!slug) notFound();
 
@@ -36,5 +37,5 @@ export default async function SitePage(props: PageProps<"/[page]">) {
   }
 
   const isAdmin = profile?.status === "approved" && profile.role === "admin";
-  return <PageView page={data} isAdmin={isAdmin} logos={logos} watermark={data.slug === "home"} />;
+  return <PageView page={data} isAdmin={isAdmin} logos={logos} watermark={data.slug === "home"} startEditing={sp.edit === "1"} />;
 }
