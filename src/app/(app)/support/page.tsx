@@ -1,8 +1,10 @@
 import { Briefcase, Globe, Phone, Search } from "lucide-react";
 import Link from "next/link";
 import { BranchBadge } from "@/components/BranchBadge";
+import { Messages } from "@/components/Messages";
 import { requireApproved } from "@/lib/auth";
 import { safeHref } from "@/lib/content";
+import { removeBusiness } from "../admin/actions";
 
 export const metadata = { title: "Support Members" };
 
@@ -19,7 +21,8 @@ type Business = {
 export default async function SupportPage(props: PageProps<"/support">) {
   const sp = await props.searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase() : "";
-  const { supabase } = await requireApproved();
+  const { supabase, profile } = await requireApproved();
+  const isAdmin = profile.role === "admin";
   const { data } = await supabase.rpc("member_businesses");
   const all = (data ?? []) as Business[];
   const shown = q
@@ -40,6 +43,8 @@ export default async function SupportPage(props: PageProps<"/support">) {
           </p>
         </div>
       </div>
+
+      <Messages error={sp.error} message={sp.message} />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <form className="flex w-full max-w-md gap-2" role="search">
@@ -80,6 +85,15 @@ export default async function SupportPage(props: PageProps<"/support">) {
                     </a>
                   )}
                 </p>
+                {isAdmin && (
+                  <details className="mt-4 border-t border-border pt-3">
+                    <summary className="cursor-pointer font-semibold text-danger">Remove from Support Members</summary>
+                    <form action={removeBusiness.bind(null, b.owner_id)} className="mt-2 space-y-2">
+                      <p>This clears the business details from {b.owner_name}&apos;s profile. They can add it again later.</p>
+                      <button className="btn-danger btn-small">Yes, remove {b.business_name}</button>
+                    </form>
+                  </details>
+                )}
               </li>
             );
           })}
