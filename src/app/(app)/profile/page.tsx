@@ -18,11 +18,23 @@ function Choice({ name, value, checked, children }: { name: string; value: strin
   );
 }
 
+// Members who signed up before first and last name were separate.
+function splitName(p: { full_name: string; first_name: string | null; last_name: string | null }) {
+  if (p.first_name || p.last_name) return [p.first_name ?? "", p.last_name ?? ""];
+  const parts = p.full_name.trim().split(/\s+/);
+  return parts.length > 1 ? [parts.slice(0, -1).join(" "), parts.at(-1)!] : [p.full_name, ""];
+}
+
 export default async function ProfilePage(props: PageProps<"/profile">) {
   const sp = await props.searchParams;
   const { supabase, profile: p } = await requireApproved({ allowIncompleteProfile: true });
   const photos = await signPhotos(supabase, [p.photo_path]);
   const group = groupName(p.group_id);
+  const thisYear = new Date().getFullYear();
+  const years = Array.from({ length: thisYear - 1949 }, (_, i) => thisYear - i);
+  const today = new Date().toISOString().slice(0, 10);
+  const isNew = p.member_since === null || p.member_since >= thisYear;
+  const [first, last] = splitName(p);
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -60,33 +72,137 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
             Group: <BranchBadge groupId={p.group_id} />
             <span className="text-muted">(ask an admin if this needs to change)</span>
           </p>
-          {p.member_since && <p className="font-semibold text-olive">Member since {p.member_since}</p>}
-          <div>
-            <label className="label" htmlFor="full_name">Name</label>
-            <input className="input" id="full_name" name="full_name" defaultValue={p.full_name} required />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="first_name">First name</label>
+              <input className="input" id="first_name" name="first_name" autoComplete="given-name" defaultValue={first} required />
+            </div>
+            <div>
+              <label className="label" htmlFor="last_name">Last name</label>
+              <input className="input" id="last_name" name="last_name" autoComplete="family-name" defaultValue={last} required />
+            </div>
           </div>
+          <div>
+            <label className="label" htmlFor="date_of_birth">Date of birth</label>
+            <input
+              className="input max-w-xs"
+              id="date_of_birth"
+              name="date_of_birth"
+              type="date"
+              min="1900-01-01"
+              max={today}
+              autoComplete="bday"
+              defaultValue={p.date_of_birth ?? ""}
+            />
+            <span className="hint">Other members only ever see the month and day, and only if you choose Public below.</span>
+          </div>
+          <fieldset className="space-y-2">
+            <legend className="label">When did you join BOBSF?</legend>
+            <Choice name="joined" value="new" checked={isNew}>
+              I&apos;m a new member
+            </Choice>
+            <label className="flex flex-wrap items-center gap-3 rounded-md border-2 border-border p-3">
+              <input type="radio" name="joined" value="year" defaultChecked={!isNew} className="h-5 w-5 shrink-0" />
+              <span>I joined in</span>
+              <select className="input w-32" name="joined_year" aria-label="Year you joined" defaultValue={String(p.member_since ?? thisYear)}>
+                {years.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </label>
+          </fieldset>
           <div>
             <label className="label" htmlFor="service_years">Years of service</label>
-            <input className="input" id="service_years" name="service_years" defaultValue={p.service_years ?? ""} />
-          </div>
-          <div>
-            <label className="label" htmlFor="city">City or area</label>
-            <input className="input" id="city" name="city" defaultValue={p.city ?? ""} />
-          </div>
-          <div>
-            <label className="label" htmlFor="phone">Phone</label>
-            <input className="input" id="phone" name="phone" type="tel" defaultValue={p.phone ?? ""} />
+            <input className="input" id="service_years" name="service_years" placeholder="For example 1998 to 2006" defaultValue={p.service_years ?? ""} />
           </div>
           <div>
             <label className="label" htmlFor="bio">A little about you</label>
-            <textarea className="input min-h-32" id="bio" name="bio" defaultValue={p.bio ?? ""} />
+            <textarea className="input min-h-40" id="bio" name="bio" defaultValue={p.bio ?? ""} />
+          </div>
+        </section>
+
+        <section className="card space-y-5" aria-labelledby="contact-h">
+          <h2 id="contact-h" className="text-2xl font-bold">Contact and mailing address</h2>
+          <div>
+            <label className="label" htmlFor="phone">Phone</label>
+            <input className="input max-w-xs" id="phone" name="phone" type="tel" autoComplete="tel" defaultValue={p.phone ?? ""} />
+          </div>
+          <div>
+            <label className="label" htmlFor="address_line1">Street address</label>
+            <input className="input" id="address_line1" name="address_line1" autoComplete="address-line1" defaultValue={p.address_line1 ?? ""} />
+          </div>
+          <div>
+            <label className="label" htmlFor="address_line2">Apartment, suite or unit <span className="font-normal text-muted">(optional)</span></label>
+            <input className="input" id="address_line2" name="address_line2" autoComplete="address-line2" defaultValue={p.address_line2 ?? ""} />
+          </div>
+          <div className="grid gap-5 sm:grid-cols-[1fr_8rem_9rem]">
+            <div>
+              <label className="label" htmlFor="city">City</label>
+              <input className="input" id="city" name="city" autoComplete="address-level2" defaultValue={p.city ?? ""} />
+            </div>
+            <div>
+              <label className="label" htmlFor="state">State</label>
+              <input className="input" id="state" name="state" autoComplete="address-level1" maxLength={30} defaultValue={p.state ?? ""} />
+            </div>
+            <div>
+              <label className="label" htmlFor="postal_code">ZIP code</label>
+              <input className="input" id="postal_code" name="postal_code" autoComplete="postal-code" inputMode="numeric" maxLength={10} defaultValue={p.postal_code ?? ""} />
+            </div>
+          </div>
+        </section>
+
+        <section className="card space-y-5" aria-labelledby="work-h">
+          <h2 id="work-h" className="text-2xl font-bold">Work</h2>
+          <div>
+            <label className="label" htmlFor="job_title">Current job or title</label>
+            <input className="input" id="job_title" name="job_title" autoComplete="organization-title" defaultValue={p.job_title ?? ""} />
+          </div>
+          <label className="flex items-start gap-3">
+            <input type="checkbox" name="retired" defaultChecked={p.retired} className="mt-1 h-5 w-5" />
+            <span>I&apos;m retired</span>
+          </label>
+          <div className="group space-y-5">
+            <label className="flex items-start gap-3">
+              <input type="checkbox" id="is_business_owner" name="is_business_owner" defaultChecked={p.is_business_owner} className="mt-1 h-5 w-5" />
+              <span>I own a business</span>
+            </label>
+            <div className="hidden space-y-5 rounded-xl border-2 border-border bg-slate-50 p-5 group-has-[input[type=checkbox]:checked]:block">
+              <p className="hint">Your business details are shown to every member who can see your profile, so fellow members can support you.</p>
+              <div>
+                <label className="label" htmlFor="business_name">Company name</label>
+                <input className="input" id="business_name" name="business_name" autoComplete="organization" defaultValue={p.business_name ?? ""} />
+              </div>
+              <div>
+                <label className="label" htmlFor="business_website">Website</label>
+                <input className="input" id="business_website" name="business_website" type="url" placeholder="https://" defaultValue={p.business_website ?? ""} />
+              </div>
+              <div>
+                <label className="label" htmlFor="business_phone">Business phone</label>
+                <input className="input max-w-xs" id="business_phone" name="business_phone" type="tel" defaultValue={p.business_phone ?? ""} />
+              </div>
+              <div>
+                <label className="label" htmlFor="business_description">What does your business do?</label>
+                <textarea className="input min-h-28" id="business_description" name="business_description" defaultValue={p.business_description ?? ""} />
+              </div>
+            </div>
           </div>
         </section>
 
         <section className="card space-y-5" aria-labelledby="privacy-h">
           <h2 id="privacy-h" className="text-2xl font-bold">Privacy</h2>
           <fieldset className="space-y-2">
-            <legend className="label">Who can see my name, photo and profile?</legend>
+            <legend className="label">My personal info: email, phone, mailing address and birthday</legend>
+            <Choice name="contact_visibility" value="leaders" checked={p.contact_visibility !== "all"}>
+              <strong>Private.</strong> Only site admins see it. Your {group} leader can also see your
+              phone and email so they can reach you.
+            </Choice>
+            <Choice name="contact_visibility" value="all" checked={p.contact_visibility === "all"}>
+              <strong>Public.</strong> Members who can see your profile can see it. Your birthday shows
+              as month and day only.
+            </Choice>
+          </fieldset>
+          <fieldset className="space-y-2">
+            <legend className="label">Who can find my name, photo and profile?</legend>
             <Choice name="name_visibility" value="group" checked={p.name_visibility === "group"}>
               Only {group} members
             </Choice>
@@ -94,21 +210,8 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
               All BOBSF members
             </Choice>
           </fieldset>
-          <fieldset className="space-y-2">
-            <legend className="label">Who can see my email and phone?</legend>
-            <Choice name="contact_visibility" value="leaders" checked={p.contact_visibility === "leaders"}>
-              Only my group leader and site admins
-            </Choice>
-            <Choice name="contact_visibility" value="group" checked={p.contact_visibility === "group"}>
-              All {group} members
-            </Choice>
-            <Choice name="contact_visibility" value="all" checked={p.contact_visibility === "all"}>
-              Everyone who can see my profile
-            </Choice>
-          </fieldset>
           <p className="hint">
-            Your group leader and site admins can always see your contact details. When you post in a
-            forum, your name shows on that post to everyone who can read that forum.
+            When you post in a forum, your name shows on that post to everyone who can read that forum.
           </p>
         </section>
 

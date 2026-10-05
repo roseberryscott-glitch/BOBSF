@@ -16,9 +16,15 @@ export default async function SignupPage(props: PageProps<"/signup">) {
       </p>
       <Messages error={sp.error} />
       <form action={signUp} className="card space-y-6">
-        <div>
-          <label className="label" htmlFor="full_name">Full name</label>
-          <input className="input" id="full_name" name="full_name" autoComplete="name" required />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="first_name">First name</label>
+            <input className="input" id="first_name" name="first_name" autoComplete="given-name" required />
+          </div>
+          <div>
+            <label className="label" htmlFor="last_name">Last name</label>
+            <input className="input" id="last_name" name="last_name" autoComplete="family-name" required />
+          </div>
         </div>
         <div>
           <label className="label" htmlFor="email">Email</label>

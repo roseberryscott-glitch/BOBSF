@@ -12,14 +12,16 @@ function fail(message: string): never {
 }
 
 export async function signUp(formData: FormData) {
-  const fullName = String(formData.get("full_name") ?? "").trim();
+  const firstName = String(formData.get("first_name") ?? "").trim().slice(0, 80);
+  const lastName = String(formData.get("last_name") ?? "").trim().slice(0, 80);
+  const fullName = `${firstName} ${lastName}`.trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const groupId = String(formData.get("group_id") ?? "");
   const verificationNote = String(formData.get("verification_note") ?? "").trim();
   const consent = formData.get("consent") === "on";
 
-  if (!fullName) fail("Please enter your name.");
+  if (!firstName || !lastName) fail("Please enter your first and last name.");
   if (!GROUPS.some((g) => g.id === groupId)) fail("Please choose your branch, or Friends.");
   if (password.length < 10) fail("Please use a password of at least 10 characters.");
   if (!consent) fail("Please check the box to agree before joining.");
@@ -31,6 +33,8 @@ export async function signUp(formData: FormData) {
     options: {
       emailRedirectTo: siteUrl("/auth/confirm?next=/pending"),
       data: {
+        first_name: firstName,
+        last_name: lastName,
         full_name: fullName,
         group_id: groupId,
         verification_note: verificationNote,

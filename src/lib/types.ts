@@ -24,6 +24,20 @@ export type Profile = {
   member_since: number | null;
   profile_completed_at: string | null;
   created_at: string;
+  first_name: string | null;
+  last_name: string | null;
+  job_title: string | null;
+  retired: boolean;
+  is_business_owner: boolean;
+  business_name: string | null;
+  business_website: string | null;
+  business_phone: string | null;
+  business_description: string | null;
+  date_of_birth: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  state: string | null;
+  postal_code: string | null;
 };
 
 // A row from member_directory(): contact fields are null when hidden.
@@ -39,4 +53,20 @@ export type DirectoryEntry = {
   email: string | null;
   phone: string | null;
   member_since: number | null;
+  first_name: string | null;
+  last_name: string | null;
+  job_title: string | null;
+  retired: boolean;
+  is_business_owner: boolean;
+  business_name: string | null;
+  business_website: string | null;
+  business_phone: string | null;
+  business_description: string | null;
+  date_of_birth: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  state: string | null;
+  postal_code: string | null;
+  // "Month Day" when the member's personal info is visible to you.
+  birthday: string | null;
 };
