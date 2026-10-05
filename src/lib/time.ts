@@ -1,5 +1,31 @@
 // Event times are entered and shown in the club's time zone (SITE_TIMEZONE).
-export const SITE_TIMEZONE = process.env.NEXT_PUBLIC_SITE_TIMEZONE ?? "America/New_York";
+// A mistyped setting would crash every page that shows a date, so common
+// names like "Central" are understood and anything else falls back to Central.
+const TIMEZONE_NAMES: Record<string, string> = {
+  eastern: "America/New_York",
+  central: "America/Chicago",
+  mountain: "America/Denver",
+  pacific: "America/Los_Angeles",
+  alaska: "America/Anchorage",
+  hawaii: "Pacific/Honolulu",
+};
+
+function siteTimezone(raw: string | undefined) {
+  const value = (raw ?? "").trim();
+  const named = TIMEZONE_NAMES[value.toLowerCase().replace(/\s*(standard\s*)?time$/, "")];
+  for (const tz of [named, value]) {
+    if (!tz) continue;
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: tz });
+      return tz;
+    } catch {
+      // not a time zone name; try the next one
+    }
+  }
+  return "America/Chicago";
+}
+
+export const SITE_TIMEZONE = siteTimezone(process.env.NEXT_PUBLIC_SITE_TIMEZONE);
 
 export function formatDateTime(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
