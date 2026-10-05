@@ -9,7 +9,7 @@ const icsText = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").re
 export async function GET(_req: NextRequest, ctx: RouteContext<"/events/[id]/ics">) {
   const { id } = await ctx.params;
   const supabase = await createClient();
-  const { data: e } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
+  const { data: e } = await supabase.from("events").select("*").eq("id", id).eq("status", "approved").maybeSingle();
   if (!e) return new NextResponse("Not found", { status: 404 });
 
   const end = e.ends_at ?? new Date(new Date(e.starts_at).getTime() + 2 * 3600 * 1000).toISOString();

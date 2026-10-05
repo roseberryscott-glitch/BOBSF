@@ -76,3 +76,46 @@ export function isoToLocalInput(iso: string) {
 export function upcomingCutoffIso() {
   return new Date(Date.now() - 6 * 3600 * 1000).toISOString();
 }
+
+// "2026-10-05": the calendar day of an instant in SITE_TIMEZONE.
+export function zonedDay(iso: string | Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: SITE_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
+// Plain calendar-day arithmetic on "YYYY-MM-DD" strings (no time zones involved).
+export function addDays(day: string, n: number) {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// The weeks shown for a month ("2026-10"), Sunday first, as "YYYY-MM-DD" days.
+export function monthGrid(month: string) {
+  const first = new Date(`${month}-01T00:00:00Z`);
+  const start = addDays(`${month}-01`, -first.getUTCDay());
+  const weeks: string[][] = [];
+  for (let day = start; weeks.length < 6; ) {
+    const week = Array.from({ length: 7 }, (_, i) => addDays(day, i));
+    if (weeks.length >= 4 && !week.some((d) => d.startsWith(month))) break;
+    weeks.push(week);
+    day = addDays(day, 7);
+  }
+  return weeks;
+}
+
+export function addMonths(month: string, n: number) {
+  const d = new Date(`${month}-01T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + n);
+  return d.toISOString().slice(0, 7);
+}
+
+export function monthName(month: string) {
+  return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long", year: "numeric" }).format(
+    new Date(`${month}-01T00:00:00Z`),
+  );
+}

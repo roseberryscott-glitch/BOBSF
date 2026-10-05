@@ -117,19 +117,48 @@ exception when raise_exception then
   if sqlerrm like 'FAILED%' then raise; end if;
 end $$;
 
--- Events: members can't create, leaders only for own group, navy can't see army event
-do $$ begin
-  insert into events (title, starts_at, group_id, created_by) values ('x', now(), 'army', auth.uid());
-  raise exception 'FAILED: member created event';
-exception when insufficient_privilege then null; end $$;
+-- Events: leaders publish only for their own group, navy can't see army event
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
 insert into events (title, starts_at, group_id, created_by) values ('Army BBQ', now(), 'army', auth.uid());
-do $$ begin
-  insert into events (title, starts_at, group_id, created_by) values ('All hands', now(), null, auth.uid());
-  raise exception 'FAILED: leader created all-member event';
-exception when insufficient_privilege then null; end $$;
+insert into events (title, starts_at, group_id, created_by) values ('All hands', now(), null, auth.uid());
+select pg_temp.check((select status from events where title = 'Army BBQ') = 'approved', 'leader publishes for own group');
+select pg_temp.check((select status from events where title = 'All hands') = 'pending', 'leader all-member event waits for an admin');
+delete from events where title = 'All hands';
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000d');
 select pg_temp.check((select count(*) from events) = 0, 'navy cannot see army event');
+
+-- Member event suggestions wait for an admin
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+insert into events (title, starts_at, group_id, created_by, status) values ('Army reunion', now() + interval '7 days', 'army', auth.uid(), 'approved');
+insert into events (title, starts_at, group_id, created_by) values ('Everyone cookout', now() + interval '8 days', null, auth.uid());
+insert into events (title, starts_at, group_id, created_by) values ('Withdrawn idea', now() + interval '9 days', null, auth.uid());
+select pg_temp.check((select status from events where title = 'Army reunion') = 'pending', 'member suggestion is pending even if it says approved');
+do $$ begin
+  insert into events (title, starts_at, group_id, created_by) values ('Navy thing', now(), 'navy', auth.uid());
+  raise exception 'FAILED: member suggested an event for another branch';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into event_rsvps (event_id, user_id) select id, auth.uid() from events where title = 'Army reunion';
+  raise exception 'FAILED: RSVP to a pending event';
+exception when insufficient_privilege then null; end $$;
+delete from events where title = 'Withdrawn idea';
+select pg_temp.check(not exists (select 1 from events where title = 'Withdrawn idea'), 'member withdraws own pending suggestion');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
+select pg_temp.check(not exists (select 1 from events where title = 'Army reunion'), 'leader does not see pending suggestion');
+update events set status = 'approved' where title = 'Army reunion';
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000d');
+select pg_temp.check(not exists (select 1 from events where title = 'Everyone cookout'), 'other members do not see pending suggestion');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
+select pg_temp.check((select count(*) from events where status = 'pending') = 2, 'admin sees pending suggestions');
+update events set status = 'approved' where title = 'Everyone cookout';
+update events set status = 'declined', decline_reason = 'Date clash' where title = 'Army reunion';
+select pg_temp.check((select reviewed_by from events where title = 'Everyone cookout') = auth.uid(), 'approval records the admin');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000d');
+select pg_temp.check(exists (select 1 from events where title = 'Everyone cookout'), 'approved suggestion is on the calendar');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+select pg_temp.check((select decline_reason from events where title = 'Army reunion') = 'Date clash', 'member sees why a suggestion was declined');
+delete from events where title = 'Everyone cookout';
+select pg_temp.check(exists (select 1 from events where title = 'Everyone cookout'), 'member cannot delete an approved event');
 
 -- Admin
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');

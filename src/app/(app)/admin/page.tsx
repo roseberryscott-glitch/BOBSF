@@ -8,12 +8,14 @@ import { getBranchLogos } from "@/lib/site";
 import { formatDateTime } from "@/lib/time";
 import type { Profile } from "@/lib/types";
 import { resolveReport, setRole, setStatus } from "./actions";
+import { ReviewButtons } from "../events/ReviewButtons";
 import { BranchLogoEditor } from "./BranchLogoEditor";
 
 export const metadata = { title: "Admin" };
 
 const TABS = [
   { id: "pending", label: "Registrations" },
+  { id: "events", label: "Events" },
   { id: "members", label: "Members" },
   { id: "reports", label: "Reported posts" },
   { id: "pages", label: "Pages" },
@@ -26,10 +28,10 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const { supabase, profile: me } = await requireAdmin();
 
-  const { count: pendingCount } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "pending");
+  const [{ count: pendingCount }, { count: eventCount }] = await Promise.all([
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "pending"),
+  ]);
 
   return (
     <div>
@@ -44,11 +46,13 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           >
             {t.label}
             {t.id === "pending" && pendingCount ? ` (${pendingCount})` : ""}
+            {t.id === "events" && eventCount ? ` (${eventCount})` : ""}
           </Link>
         ))}
       </nav>
       <Messages error={sp.error} message={sp.message} />
       {tab === "pending" && <Pending />}
+      {tab === "events" && <PendingEvents />}
       {tab === "members" && <Members q={q} meId={me.id} />}
       {tab === "reports" && <Reports />}
       {tab === "pages" && <Pages />}
@@ -187,6 +191,36 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           ))}
         </ul>
       </div>
+    );
+  }
+
+  async function PendingEvents() {
+    const { data } = await supabase
+      .from("events")
+      .select("id, title, starts_at, ends_at, location, group_id, description, created_at, profiles!events_created_by_fkey(full_name)")
+      .eq("status", "pending")
+      .order("starts_at");
+    if (!data?.length) return <p className="card">No events waiting for approval.</p>;
+    return (
+      <ul className="space-y-4">
+        {data.map((e) => (
+          <li key={e.id} className="card space-y-2">
+            <p className="text-xl font-semibold">
+              <Link href={`/events/${e.id}`}>{e.title}</Link>
+            </p>
+            <p>
+              {formatDateTime(e.starts_at)}
+              {e.location ? ` · ${e.location}` : ""}
+            </p>
+            <p className="flex flex-wrap items-center gap-2 text-muted">
+              For: {e.group_id ? <BranchBadge groupId={e.group_id} size="sm" /> : "All members"} · Suggested by{" "}
+              {(e.profiles as unknown as { full_name: string } | null)?.full_name ?? "a former member"}
+            </p>
+            {e.description && <p className="whitespace-pre-line">{e.description.slice(0, 600)}</p>}
+            <ReviewButtons id={e.id} back="admin" />
+          </li>
+        ))}
+      </ul>
     );
   }
 

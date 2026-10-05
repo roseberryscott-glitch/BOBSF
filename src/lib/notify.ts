@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmails, siteUrl } from "@/lib/email";
 import { groupName } from "@/lib/groups";
+import { formatDateTime } from "@/lib/time";
 
 // All notifications go through here. When the phone apps exist, push
 // notifications for new threads and events get added in this file.
@@ -74,6 +75,46 @@ export async function notifyStatusChange(memberId: string, status: "approved" | 
       kind: "account",
       subject: status === "approved" ? "Your BOBSF membership is approved" : "Your BOBSF registration",
       text,
+    },
+  ]);
+}
+
+export async function notifyAdminsOfEvent(eventId: string) {
+  const db = createAdminClient();
+  const [{ data: e }, { data: admins }] = await Promise.all([
+    db.from("events").select("title, starts_at, profiles!events_created_by_fkey(full_name)").eq("id", eventId).single(),
+    db.from("profiles").select("email").eq("role", "admin").eq("status", "approved"),
+  ]);
+  if (!e) return;
+  const by = (e.profiles as unknown as { full_name: string } | null)?.full_name ?? "A member";
+  await sendEmails(
+    (admins ?? []).map((a) => ({
+      to: a.email,
+      kind: "account" as const,
+      subject: `Event to approve: ${e.title}`,
+      text: `${by} suggested an event for the calendar: "${e.title}" on ${formatDateTime(e.starts_at)}.\n\nApprove or decline it here: ${siteUrl("/admin?tab=events")}`,
+    })),
+  );
+}
+
+export async function notifyEventDecision(eventId: string) {
+  const db = createAdminClient();
+  const { data: e } = await db
+    .from("events")
+    .select("id, title, status, decline_reason, profiles!events_created_by_fkey(email, full_name)")
+    .eq("id", eventId)
+    .single();
+  const p = e?.profiles as unknown as { email: string; full_name: string } | null;
+  if (!e || !p) return;
+  const approved = e.status === "approved";
+  await sendEmails([
+    {
+      to: p.email,
+      kind: "account",
+      subject: approved ? `Your event is on the calendar: ${e.title}` : `Your event suggestion: ${e.title}`,
+      text: approved
+        ? `Good news, ${p.full_name}: "${e.title}" was approved and is on the BOBSF calendar.\n\n${siteUrl(`/events/${e.id}`)}`
+        : `Hello ${p.full_name},\n\nYour event suggestion "${e.title}" wasn't approved for the calendar.${e.decline_reason ? `\n\nThe admin's note: ${e.decline_reason}` : ""}`,
     },
   ]);
 }
