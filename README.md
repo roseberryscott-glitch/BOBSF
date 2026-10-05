@@ -33,7 +33,7 @@ The privacy rules (who can see names, contact info, forums and events) are enfor
 
 ## Going live (one-time setup)
 
-1. **Supabase:** create a project at supabase.com. In the SQL editor, run `supabase/migrations/20260929000000_init.sql`.
+1. **Supabase:** create a project at supabase.com. In the SQL editor, run each file in `supabase/migrations/` in date order.
 2. **Supabase auth settings:**
    - Under Authentication > URL Configuration, set the Site URL to your domain and add `https://YOUR-DOMAIN/auth/confirm` as a redirect URL.
    - Keep "Confirm email" turned on.
@@ -68,5 +68,6 @@ To run the tests on plain Postgres without Supabase, apply `supabase/tests/supab
 ```bash
 createdb bobsf_test
 psql -d bobsf_test -v ON_ERROR_STOP=1 -f supabase/tests/supabase_stub.sql \
-  -f supabase/migrations/20260929000000_init.sql -f supabase/tests/privacy_test.sql
+  -f supabase/migrations/20260929000000_init.sql -f supabase/migrations/20261005000000_groups_rls.sql \
+  -f supabase/tests/privacy_test.sql
 ```

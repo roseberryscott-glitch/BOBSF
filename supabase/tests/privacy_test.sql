@@ -60,6 +60,13 @@ do $$ begin
   raise exception 'FAILED: friend posted in army forum';
 exception when insufficient_privilege then null; end $$;
 
+-- Nobody can change the groups list through the API
+do $$ begin
+  insert into groups (id, name, short_name, sort_order) values ('x', 'x', 'x', 99);
+  raise exception 'FAILED: member added a group';
+exception when insufficient_privilege then null; end $$;
+select pg_temp.check((select count(*) from groups) = 7, 'members can read groups');
+
 -- Pending user
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000f');
 select pg_temp.check((select count(*) from member_directory()) = 0, 'pending sees no directory');
