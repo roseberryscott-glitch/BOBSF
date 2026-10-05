@@ -11,6 +11,17 @@ function isPublic(pathname: string) {
 // Refreshes the Supabase session cookie on every request and sends
 // signed-out visitors to the login page. Approval checks happen in the pages.
 export async function proxy(request: NextRequest) {
+  // Without these the Supabase client throws and every page is a bare
+  // "Internal Server Error", so say what's actually wrong.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return new NextResponse(
+      "BOBSF isn't fully set up yet: the Supabase settings (NEXT_PUBLIC_SUPABASE_URL and " +
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY) are missing. Add them in Vercel under Settings > " +
+        "Environment Variables, then redeploy.",
+      { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+    );
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
