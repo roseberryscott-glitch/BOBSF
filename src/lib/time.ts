@@ -27,6 +27,12 @@ function siteTimezone(raw: string | undefined) {
 
 export const SITE_TIMEZONE = siteTimezone(process.env.NEXT_PUBLIC_SITE_TIMEZONE);
 
+// "Central" for America/Chicago, and so on; the raw name for anything else.
+export const SITE_TIMEZONE_LABEL =
+  Object.entries(TIMEZONE_NAMES)
+    .find(([, tz]) => tz === SITE_TIMEZONE)?.[0]
+    .replace(/^./, (c) => c.toUpperCase()) ?? SITE_TIMEZONE.replace(/_/g, " ");
+
 export function formatDateTime(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: SITE_TIMEZONE,

@@ -1,13 +1,16 @@
 import type { Profile } from "@/lib/types";
 import { GROUPS } from "@/lib/groups";
-import { SITE_TIMEZONE } from "@/lib/time";
+import { REPEATS } from "@/lib/events";
+import { SITE_TIMEZONE_LABEL } from "@/lib/time";
 
 type Values = {
   title?: string;
   description?: string | null;
   location?: string | null;
-  starts_at?: string;
-  ends_at?: string;
+  date?: string;
+  time?: string;
+  repeat?: string;
+  repeat_until?: string | null;
   group_id?: string | null;
 };
 
@@ -36,15 +39,31 @@ export function EventForm({
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label className="label" htmlFor="starts_at">Starts</label>
-          <input className="input" id="starts_at" name="starts_at" type="datetime-local" defaultValue={values.starts_at} required />
+          <label className="label" htmlFor="date">Day</label>
+          <input className="input" id="date" name="date" type="date" defaultValue={values.date} required />
         </div>
         <div>
-          <label className="label" htmlFor="ends_at">Ends (optional)</label>
-          <input className="input" id="ends_at" name="ends_at" type="datetime-local" defaultValue={values.ends_at} />
+          <label className="label" htmlFor="time">Time</label>
+          <input className="input" id="time" name="time" type="time" step={300} defaultValue={values.time} required />
         </div>
       </div>
-      <p className="hint -mt-3">Times are in {SITE_TIMEZONE.replace("_", " ")} time.</p>
+      <p className="hint -mt-3">Times are in {SITE_TIMEZONE_LABEL} time.</p>
+      <div className="group grid gap-5 sm:grid-cols-2">
+        <div>
+          <label className="label" htmlFor="repeat">Repeats</label>
+          <select className="input" id="repeat" name="repeat" defaultValue={values.repeat ?? "none"}>
+            {Object.entries(REPEATS).map(([id, label]) => (
+              <option key={id} value={id}>{label}</option>
+            ))}
+          </select>
+          <span className="hint">Repeats on the same weekday (or the same date, for monthly) as the day above.</span>
+        </div>
+        <div className="group-has-[option[value=none]:checked]:hidden">
+          <label className="label" htmlFor="repeat_until">Last day it repeats <span className="font-normal text-muted">(optional)</span></label>
+          <input className="input" id="repeat_until" name="repeat_until" type="date" defaultValue={values.repeat_until ?? ""} />
+          <span className="hint">Leave empty to keep repeating.</span>
+        </div>
+      </div>
       <div>
         <label className="label" htmlFor="location">Location</label>
         <input className="input" id="location" name="location" defaultValue={values.location ?? ""} />

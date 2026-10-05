@@ -5,17 +5,24 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin, requireApproved } from "@/lib/auth";
 import { notifyAdminsOfEvent, notifyEventDecision } from "@/lib/notify";
+import { REPEATS, type Repeat } from "@/lib/events";
 import { localInputToIso } from "@/lib/time";
 
 function readEvent(formData: FormData) {
   const text = (k: string) => String(formData.get(k) ?? "").trim();
   const group = text("group_id");
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(text("date")) ? text("date") : "";
+  const time = /^\d{2}:\d{2}/.test(text("time")) ? text("time").slice(0, 5) : "";
+  const repeat = text("repeat") in REPEATS ? (text("repeat") as Repeat) : "none";
+  const until = /^\d{4}-\d{2}-\d{2}$/.test(text("repeat_until")) ? text("repeat_until") : null;
   return {
     title: text("title").slice(0, 200),
     description: text("description") || null,
     location: text("location") || null,
-    starts_at: localInputToIso(text("starts_at")),
-    ends_at: text("ends_at") ? localInputToIso(text("ends_at")) : null,
+    starts_at: date && time ? localInputToIso(`${date}T${time}`) : null,
+    ends_at: null,
+    repeat,
+    repeat_until: repeat !== "none" && until && until >= date ? until : null,
     group_id: group === "all" ? null : group,
   };
 }
@@ -24,7 +31,7 @@ export async function createEvent(formData: FormData) {
   const { supabase, profile } = await requireApproved();
   const event = readEvent(formData);
   if (!event.title || !event.starts_at) {
-    redirect(`/events/new?error=${encodeURIComponent("Please add a title and a start time.")}`);
+    redirect(`/events/new?error=${encodeURIComponent("Please add a name, a day and a time.")}`);
   }
   // The database decides whether it goes straight on the calendar (admins, and
   // leaders for their own branch) or waits for an admin (everyone else).
@@ -50,7 +57,7 @@ export async function updateEvent(id: string, formData: FormData) {
   const { supabase } = await requireApproved();
   const event = readEvent(formData);
   if (!event.title || !event.starts_at) {
-    redirect(`/events/${id}/edit?error=${encodeURIComponent("Please add a title and a start time.")}`);
+    redirect(`/events/${id}/edit?error=${encodeURIComponent("Please add a name, a day and a time.")}`);
   }
   const { data, error } = await supabase.from("events").update(event).eq("id", id).select("id");
   if (error || !data?.length) {

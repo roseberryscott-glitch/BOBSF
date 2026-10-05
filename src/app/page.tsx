@@ -8,7 +8,8 @@ import { PageView } from "@/components/cms/PageView";
 import { getViewer } from "@/lib/auth";
 import { getGroup, groupName } from "@/lib/groups";
 import { getBranchLogos, getPage } from "@/lib/site";
-import { dayParts, formatTime, upcomingCutoffIso } from "@/lib/time";
+import { occurrences, type Repeating } from "@/lib/events";
+import { addDays, dayParts, formatTime, upcomingCutoffIso, zonedDay } from "@/lib/time";
 
 export default async function Home(props: PageProps<"/">) {
   const sp = await props.searchParams;
@@ -30,14 +31,15 @@ export default async function Home(props: PageProps<"/">) {
   if (profile.status !== "approved") redirect("/pending");
   if (profile.profile_completed_at === null) redirect("/profile?welcome=1");
 
-  const [{ data: events }, { data: threads }] = await Promise.all([
+  const cutoff = upcomingCutoffIso();
+  const [{ data: eventRows }, { data: threads }] = await Promise.all([
     supabase
       .from("events")
-      .select("id, title, starts_at, group_id, location")
+      .select("id, title, starts_at, group_id, location, repeat, repeat_until")
       .eq("status", "approved")
-      .gte("starts_at", upcomingCutoffIso())
+      .or(`starts_at.gte.${cutoff},repeat.neq.none`)
       .order("starts_at")
-      .limit(4),
+      .limit(50),
     supabase
       .from("threads")
       .select("id, title, forum_id, author_name, last_post_at, forums(name)")
@@ -45,6 +47,13 @@ export default async function Home(props: PageProps<"/">) {
       .limit(5),
   ]);
   const group = getGroup(profile.group_id);
+  // The next few dates, counting each repeat of a repeating event.
+  const fromDay = zonedDay(cutoff);
+  const events = ((eventRows ?? []) as (Repeating & { id: string; title: string; group_id: string | null })[])
+    .flatMap((e) => occurrences(e, fromDay, addDays(fromDay, 90), 4).map((at) => ({ ...e, at })))
+    .filter((e) => e.at >= cutoff)
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .slice(0, 4);
 
   return (
     <>
@@ -94,10 +103,10 @@ export default async function Home(props: PageProps<"/">) {
             {events?.length ? (
               <ul className="space-y-3">
                 {events.map((e) => {
-                  const d = dayParts(e.starts_at);
+                  const d = dayParts(e.at);
                   return (
-                    <li key={e.id}>
-                      <Link href={`/events/${e.id}`} className="lift-card flex gap-4 p-4 no-underline">
+                    <li key={`${e.id}-${e.at}`}>
+                      <Link href={`/events/${e.id}?on=${zonedDay(e.at)}`} className="lift-card flex gap-4 p-4 no-underline">
                         <span className="w-14 shrink-0 rounded-lg bg-navy py-1.5 text-center text-white" aria-hidden="true">
                           <span className="block text-xs uppercase text-gold">{d.month}</span>
                           <span className="font-display block text-2xl font-bold">{d.day}</span>
@@ -105,7 +114,7 @@ export default async function Home(props: PageProps<"/">) {
                         <span>
                           <span className="block text-lg font-semibold text-navy">{e.title}</span>
                           <span className="block text-base text-slate-600">
-                            {d.weekday} {formatTime(e.starts_at)} · {e.group_id ? groupName(e.group_id) : "All members"}
+                            {d.weekday} {formatTime(e.at)} · {e.group_id ? groupName(e.group_id) : "All members"}
                           </span>
                         </span>
                       </Link>
