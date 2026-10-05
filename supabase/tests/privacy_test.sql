@@ -90,6 +90,7 @@ select pg_temp.check((select count(*) from groups) = 7, 'members can read groups
 -- Pending user
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000f');
 select pg_temp.check((select count(*) from member_directory()) = 0, 'pending sees no directory');
+select pg_temp.check((select count(*) from member_businesses()) = 0, 'pending sees no business directory');
 select pg_temp.check((select count(*) from forums) = 0, 'pending sees no forums');
 do $$ begin
   update profiles set status = 'approved' where id = auth.uid();
@@ -168,6 +169,9 @@ select pg_temp.check((select count(*) from member_directory()) = 6, 'admin sees 
 select pg_temp.check((select address_line1 || ' ' || date_of_birth from member_directory() where full_name = 'Max Army') = '1 Main St 1980-07-04', 'admin sees private personal info');
 select pg_temp.check((select business_name from member_directory() where full_name = 'Max Army') is null, 'business details hidden when not an owner');
 select pg_temp.check((select retired and job_title = 'Mechanic' from member_directory() where full_name = 'Max Army'), 'job and retired shown');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000d');
+select pg_temp.check((select array_agg(business_name) from member_businesses()) = array['Lee Lawn Care'], 'business directory lists owners to every member, not non-owners');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
 do $$ begin
   perform admin_set_role(auth.uid(), 'member', 'army');
   raise exception 'FAILED: removed last admin';

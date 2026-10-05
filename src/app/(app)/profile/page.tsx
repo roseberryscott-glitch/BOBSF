@@ -167,7 +167,7 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
               <span>I own a business</span>
             </label>
             <div className="hidden space-y-5 rounded-xl border-2 border-border bg-slate-50 p-5 group-has-[input[type=checkbox]:checked]:block">
-              <p className="hint">Your business details are shown to every member who can see your profile, so fellow members can support you.</p>
+              <p className="hint">Your business, with your name and branch, is listed on the Support Members page for every BOBSF member to see.</p>
               <div>
                 <label className="label" htmlFor="business_name">Company name</label>
                 <input className="input" id="business_name" name="business_name" autoComplete="organization" defaultValue={p.business_name ?? ""} />

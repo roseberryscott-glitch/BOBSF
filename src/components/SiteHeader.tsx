@@ -29,6 +29,7 @@ export async function SiteHeader() {
         { href: "/events", label: "Calendar" },
         { href: "/forums", label: "Forums" },
         { href: "/members", label: "Members" },
+        { href: "/support", label: "Support Members" },
         ...(profile.role !== "member" ? [{ href: "/email", label: "Email" }] : []),
         ...(profile.role === "admin" ? [{ href: "/admin", label: "Admin" }] : []),
       ]
@@ -42,7 +43,7 @@ export async function SiteHeader() {
         { href: "/signup", label: "Join" },
       ];
 
-  const link = "rounded-lg px-3 py-2 font-semibold text-white no-underline hover:bg-white/10";
+  const link = "whitespace-nowrap rounded-lg px-3 py-2 font-semibold text-white no-underline hover:bg-white/10";
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-navy/95 text-white shadow-lg backdrop-blur">
@@ -50,7 +51,7 @@ export async function SiteHeader() {
         <Logo />
 
         {/* Wide screens */}
-        <nav aria-label="Main" className="ml-6 hidden flex-1 items-center gap-1 lg:flex">
+        <nav aria-label="Main" className="ml-6 hidden flex-1 items-center gap-1 min-[1140px]:flex">
           {aboutLinks.length > 0 && (
             <details className="group relative">
               <summary className={`${link} flex cursor-pointer list-none items-center gap-1`}>
@@ -69,7 +70,7 @@ export async function SiteHeader() {
             <Link key={l.href} href={l.href} className={link}>{l.label}</Link>
           ))}
         </nav>
-        <div className="ml-auto hidden items-center gap-1 lg:flex">
+        <div className="ml-auto hidden items-center gap-1 min-[1140px]:flex">
           {accountLinks.map((l) =>
             l.href === "/signup" ? (
               <Link key={l.href} href={l.href} className="ml-2 rounded-lg bg-gold px-4 py-2 font-bold text-navy no-underline hover:bg-[var(--gold-2)]">
@@ -87,7 +88,7 @@ export async function SiteHeader() {
         </div>
 
         {/* Phones and tablets */}
-        <details className="group ml-auto lg:hidden">
+        <details className="group ml-auto min-[1140px]:hidden">
           <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-lg px-3 font-semibold hover:bg-white/10">
             <Menu className="h-6 w-6" /> Menu
           </summary>
