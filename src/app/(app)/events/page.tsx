@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Plus, Repeat2 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { BranchBadge } from "@/components/BranchBadge";
 import { Messages } from "@/components/Messages";
@@ -99,7 +100,17 @@ export default async function EventsPage(props: PageProps<"/events">) {
         </p>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+      <div className="relative isolate overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+        {/* Every December the calendar gets a Go Navy, Beat Army background. */}
+        {month.endsWith("-12") && (
+          <Image
+            src="/december-calendar.jpg"
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 1000px, 100vw"
+            className="-z-10 object-contain p-6 opacity-25 mix-blend-multiply"
+          />
+        )}
         <div className="grid grid-cols-7 bg-navy text-center text-sm font-bold uppercase tracking-wide text-white">
           {WEEKDAYS.map((d) => (
             <div key={d} className="py-2">
@@ -117,7 +128,7 @@ export default async function EventsPage(props: PageProps<"/events">) {
               return (
                 <div
                   key={day}
-                  className={`min-h-16 border-l border-border p-1 first:border-l-0 sm:min-h-28 sm:p-2 ${inMonth ? "" : "bg-slate-50 text-slate-400"}`}
+                  className={`min-h-16 border-l border-border p-1 first:border-l-0 sm:min-h-28 sm:p-2 ${inMonth ? "" : "bg-slate-50/70 text-slate-400"}`}
                 >
                   <div
                     className={`mb-1 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${isToday ? "bg-gold text-navy" : ""}`}

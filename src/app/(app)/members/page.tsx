@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { BranchBadge } from "@/components/BranchBadge";
@@ -10,6 +11,10 @@ import type { DirectoryEntry } from "@/lib/types";
 
 export const metadata = { title: "Members" };
 
+// Who can pick a branch and see who is in it. Change to `true` to let every
+// member browse the other branches too.
+const EVERYONE_CAN_BROWSE = false;
+
 export default async function MembersPage(props: PageProps<"/members">) {
   const { supabase, profile } = await requireApproved();
   const sp = await props.searchParams;
@@ -20,10 +25,20 @@ export default async function MembersPage(props: PageProps<"/members">) {
 
   const counts = new Map<string, number>();
   for (const m of members) counts.set(m.group_id, (counts.get(m.group_id) ?? 0) + 1);
-  const tabs = GROUPS.filter((g) => g.id === profile.group_id || counts.has(g.id));
+  const isAdmin = profile.role === "admin";
+  const canBrowse = isAdmin || EVERYONE_CAN_BROWSE;
+  // Admins see every branch, even empty ones, plus everyone at once.
+  const tabs = isAdmin ? GROUPS : GROUPS.filter((g) => g.id === profile.group_id || counts.has(g.id));
 
-  const selected = typeof sp.group === "string" && getGroup(sp.group) ? sp.group : profile.group_id;
-  const shown = members.filter((m) => m.group_id === selected);
+  const requested = typeof sp.group === "string" ? sp.group : null;
+  const selected = !canBrowse
+    ? profile.group_id
+    : requested === "all" && isAdmin
+      ? "all"
+      : requested && getGroup(requested)
+        ? requested
+        : profile.group_id;
+  const shown = selected === "all" ? members : members.filter((m) => m.group_id === selected);
   const [photos, logos] = await Promise.all([
     signPhotos(supabase, shown.map((m) => m.photo_path)),
     getBranchLogos(supabase),
@@ -33,28 +48,44 @@ export default async function MembersPage(props: PageProps<"/members">) {
   return (
     <div>
       <h1 className="sr-only">Members</h1>
-      <nav aria-label="Groups" className="mb-6 flex flex-wrap gap-2">
-        {tabs.map((g) => (
-          <Link
-            key={g.id}
-            href={`/members?group=${g.id}`}
-            aria-current={g.id === selected ? "page" : undefined}
-            className={g.id === selected ? "btn btn-small" : "btn-secondary btn-small"}
-          >
-            {g.name} ({counts.get(g.id) ?? 0})
-          </Link>
-        ))}
-      </nav>
+      {canBrowse && (
+        <nav aria-label="Branches" className="mb-6 flex flex-wrap gap-2">
+          {isAdmin && (
+            <Link
+              href="/members?group=all"
+              aria-current={selected === "all" ? "page" : undefined}
+              className={selected === "all" ? "btn btn-small" : "btn-secondary btn-small"}
+            >
+              All members ({members.length})
+            </Link>
+          )}
+          {tabs.map((g) => (
+            <Link
+              key={g.id}
+              href={`/members?group=${g.id}`}
+              aria-current={g.id === selected ? "page" : undefined}
+              className={g.id === selected ? "btn btn-small" : "btn-secondary btn-small"}
+            >
+              {g.name} ({counts.get(g.id) ?? 0})
+            </Link>
+          ))}
+        </nav>
+      )}
 
       <div className="hero-bg relative mb-8 overflow-hidden rounded-2xl text-white shadow-lg">
         <div className="stars absolute inset-0 opacity-30" aria-hidden="true" />
         <div className="relative flex flex-wrap items-center gap-6 p-6 sm:p-8">
-          <BranchLogo groupId={selected} logos={logos} size={110} />
+          {selected === "all" ? (
+            <Image src="/bobsf-logo-small.png" alt="" width={110} height={110} className="h-[110px] w-auto" />
+          ) : (
+            <BranchLogo groupId={selected} logos={logos} size={110} />
+          )}
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.25em] text-gold">Members</p>
-            <h2 className="font-display text-4xl font-bold uppercase sm:text-5xl">{group?.name}</h2>
+            <h2 className="font-display text-4xl font-bold uppercase sm:text-5xl">{group?.name ?? "All members"}</h2>
             <p className="mt-1 text-slate-300">
-              {shown.length} {shown.length === 1 ? "member" : "members"} you can see
+              {shown.length} {shown.length === 1 ? "member" : "members"}
+              {isAdmin ? "" : " you can see"}
             </p>
           </div>
         </div>
