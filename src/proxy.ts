@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Pages anyone can open without signing in.
 const PUBLIC_PATHS = [
   "/", "/login", "/signup", "/forgot", "/auth", "/unsubscribe", "/privacy", "/terms",
-  "/welcome", "/about", "/founders", "/charities", "/elected",
+  "/welcome", "/about", "/founders", "/charities",
 ];
 
 function isPublic(pathname: string) {
