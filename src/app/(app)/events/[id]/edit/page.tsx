@@ -25,8 +25,8 @@ export default async function EditEventPage(props: PageProps<"/events/[id]/edit"
         values={{
           ...e,
           group_id: e.group_id ?? "all",
-          starts_at: isoToLocalInput(e.starts_at),
-          ends_at: e.ends_at ? isoToLocalInput(e.ends_at) : "",
+          date: isoToLocalInput(e.starts_at).slice(0, 10),
+          time: isoToLocalInput(e.starts_at).slice(11, 16),
         }}
       />
     </div>

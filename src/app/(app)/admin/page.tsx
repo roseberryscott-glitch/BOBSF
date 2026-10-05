@@ -3,6 +3,7 @@ import { BranchBadge } from "@/components/BranchBadge";
 import { Messages } from "@/components/Messages";
 import { requireAdmin } from "@/lib/auth";
 import { PAGE_ROUTES } from "@/lib/content";
+import { describeRepeat } from "@/lib/events";
 import { GROUPS } from "@/lib/groups";
 import { getBranchLogos } from "@/lib/site";
 import { formatDateTime } from "@/lib/time";
@@ -197,7 +198,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   async function PendingEvents() {
     const { data } = await supabase
       .from("events")
-      .select("id, title, starts_at, ends_at, location, group_id, description, created_at, profiles!events_created_by_fkey(full_name)")
+      .select("id, title, starts_at, repeat, repeat_until, location, group_id, description, created_at, profiles!events_created_by_fkey(full_name)")
       .eq("status", "pending")
       .order("starts_at");
     if (!data?.length) return <p className="card">No events waiting for approval.</p>;
@@ -212,6 +213,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
               {formatDateTime(e.starts_at)}
               {e.location ? ` · ${e.location}` : ""}
             </p>
+            {describeRepeat(e) && <p className="font-semibold text-olive">{describeRepeat(e)}</p>}
             <p className="flex flex-wrap items-center gap-2 text-muted">
               For: {e.group_id ? <BranchBadge groupId={e.group_id} size="sm" /> : "All members"} · Suggested by{" "}
               {(e.profiles as unknown as { full_name: string } | null)?.full_name ?? "a former member"}

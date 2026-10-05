@@ -1,8 +1,9 @@
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Repeat2 } from "lucide-react";
 import Link from "next/link";
 import { BranchBadge } from "@/components/BranchBadge";
 import { Messages } from "@/components/Messages";
 import { requireApproved } from "@/lib/auth";
+import { describeRepeat, occurrences, type Repeating } from "@/lib/events";
 import {
   addDays,
   addMonths,
@@ -19,11 +20,9 @@ export const metadata = { title: "Calendar" };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-type CalEvent = {
+type CalEvent = Repeating & {
   id: string;
   title: string;
-  starts_at: string;
-  ends_at: string | null;
   location: string | null;
   group_id: string | null;
 };
@@ -39,13 +38,13 @@ export default async function EventsPage(props: PageProps<"/events">) {
   const gridEnd = addDays(weeks.at(-1)!.at(-1)!, 1);
 
   const [{ data }, { data: mine }, { count: waiting }] = await Promise.all([
-    // Events that overlap the weeks on screen (multi-day events may start earlier).
+    // One-off events in the weeks on screen, plus every repeating event that has started by then.
     supabase
       .from("events")
-      .select("id, title, starts_at, ends_at, location, group_id")
+      .select("id, title, starts_at, location, group_id, repeat, repeat_until")
       .eq("status", "approved")
       .lt("starts_at", localInputToIso(`${gridEnd}T00:00`)!)
-      .gte("starts_at", localInputToIso(`${addDays(gridStart, -14)}T00:00`)!)
+      .or(`starts_at.gte.${localInputToIso(`${gridStart}T00:00`)},repeat.neq.none`)
       .order("starts_at"),
     supabase
       .from("events")
@@ -57,18 +56,13 @@ export default async function EventsPage(props: PageProps<"/events">) {
       ? supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "pending")
       : Promise.resolve({ count: 0 }),
   ]);
-  const events = (data ?? []) as CalEvent[];
-
-  // Each event appears on every day it covers (up to two weeks).
-  const byDay = new Map<string, CalEvent[]>();
-  for (const e of events) {
-    const first = zonedDay(e.starts_at);
-    const last = e.ends_at ? zonedDay(e.ends_at) : first;
-    for (let d = first, i = 0; d <= last && i < 14; d = addDays(d, 1), i++) {
-      byDay.set(d, [...(byDay.get(d) ?? []), e]);
-    }
-  }
-  const thisMonth = events.filter((e) => zonedDay(e.starts_at).startsWith(month) || (e.ends_at && zonedDay(e.ends_at).startsWith(month)));
+  // One entry per date the event happens on screen.
+  const events = ((data ?? []) as CalEvent[])
+    .flatMap((e) => occurrences(e, gridStart, gridEnd).map((at) => ({ ...e, at, day: zonedDay(at) })))
+    .sort((a, b) => a.at.localeCompare(b.at));
+  const byDay = new Map<string, typeof events>();
+  for (const e of events) byDay.set(e.day, [...(byDay.get(e.day) ?? []), e]);
+  const thisMonth = events.filter((e) => e.day.startsWith(month));
   const canPublish = profile.role === "admin" || profile.role === "leader";
 
   return (
@@ -133,18 +127,18 @@ export default async function EventsPage(props: PageProps<"/events">) {
                   {/* Phones: a dot per event; the list below has the details. */}
                   <div className="flex flex-wrap gap-1 sm:hidden">
                     {list.map((e) => (
-                      <Link key={e.id} href={`/events/${e.id}`} aria-label={e.title} className={`h-2.5 w-2.5 rounded-full ${e.group_id ? "bg-olive" : "bg-navy"}`} />
+                      <Link key={e.id} href={`/events/${e.id}?on=${e.day}`} aria-label={e.title} className={`h-2.5 w-2.5 rounded-full ${e.group_id ? "bg-olive" : "bg-navy"}`} />
                     ))}
                   </div>
                   <ul className="hidden space-y-1 sm:block">
                     {list.slice(0, 3).map((e) => (
                       <li key={e.id}>
                         <Link
-                          href={`/events/${e.id}`}
+                          href={`/events/${e.id}?on=${e.day}`}
                           title={e.title}
                           className={`block truncate rounded px-1.5 py-0.5 text-sm font-semibold text-white no-underline hover:opacity-90 ${e.group_id ? "bg-olive" : "bg-navy"}`}
                         >
-                          {zonedDay(e.starts_at) === day && <span className="font-normal opacity-80">{formatTime(e.starts_at).replace(/ [A-Z]{2,4}$/, "")} </span>}
+                          <span className="font-normal opacity-80">{formatTime(e.at).replace(/ [A-Z]{2,4}$/, "")} </span>
                           {e.title}
                         </Link>
                       </li>
@@ -169,20 +163,22 @@ export default async function EventsPage(props: PageProps<"/events">) {
         ) : (
           <ul className="space-y-3">
             {thisMonth.map((e) => {
-              const d = dayParts(e.starts_at);
+              const d = dayParts(e.at);
+              const repeats = describeRepeat(e);
               return (
-                <li key={e.id} className="card flex gap-5">
+                <li key={`${e.id}-${e.day}`} className="card flex gap-5">
                   <div className="w-16 shrink-0 rounded-md bg-primary py-2 text-center text-white" aria-hidden="true">
                     <div className="text-sm uppercase">{d.weekday}</div>
                     <div className="text-2xl font-bold">{d.day}</div>
                     <div className="text-sm uppercase">{d.month}</div>
                   </div>
                   <div className="min-w-0">
-                    <Link href={`/events/${e.id}`} className="text-xl font-semibold">{e.title}</Link>
+                    <Link href={`/events/${e.id}?on=${e.day}`} className="text-xl font-semibold">{e.title}</Link>
                     <p>
-                      {d.weekday} {d.month} {d.day}, {formatTime(e.starts_at)}
+                      {d.weekday} {d.month} {d.day}, {formatTime(e.at)}
                       {e.location ? ` · ${e.location}` : ""}
                     </p>
+                    {repeats && <p className="flex items-center gap-1.5 text-olive"><Repeat2 className="h-4 w-4" /> {repeats}</p>}
                     <p className="mt-1 flex flex-wrap items-center gap-2 text-muted">
                       {e.group_id ? <BranchBadge groupId={e.group_id} size="sm" /> : "All members"}
                     </p>

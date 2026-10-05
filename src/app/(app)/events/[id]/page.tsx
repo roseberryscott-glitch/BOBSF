@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BranchBadge } from "@/components/BranchBadge";
 import { canManageGroup, requireApproved } from "@/lib/auth";
-import { formatDateTime, formatTime } from "@/lib/time";
+import { Repeat2 } from "lucide-react";
+import { describeRepeat, occurrences } from "@/lib/events";
+import { addDays, formatDateTime, formatTime, upcomingCutoffIso, zonedDay } from "@/lib/time";
 import { Messages } from "@/components/Messages";
 import { deleteEvent, setRsvp } from "../actions";
 import { ReviewButtons } from "../ReviewButtons";
@@ -19,6 +21,10 @@ export default async function EventPage(props: PageProps<"/events/[id]">) {
   const approved = e.status === "approved";
   const isAdmin = profile.role === "admin";
   const mine = e.created_by === profile.id;
+  const repeats = describeRepeat(e);
+  // Which date to show: the one picked on the calendar, or the next one coming up.
+  const on = typeof sp.on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.on) ? sp.on : zonedDay(upcomingCutoffIso());
+  const shownAt = repeats ? (occurrences(e, on, addDays(on, 400), 1)[0] ?? e.starts_at) : e.starts_at;
   const mapUrl = e.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}` : null;
 
   return (
@@ -37,10 +43,12 @@ export default async function EventPage(props: PageProps<"/events/[id]">) {
       )}
       <div className="card space-y-4">
         <h1 className="text-3xl font-bold">{e.title}</h1>
-        <p className="text-xl">
-          {formatDateTime(e.starts_at)}
-          {e.ends_at ? ` to ${formatTime(e.ends_at)}` : ""}
-        </p>
+        <p className="text-xl">{formatDateTime(shownAt)}</p>
+        {repeats && (
+          <p className="flex items-center gap-2 font-semibold text-olive">
+            <Repeat2 className="h-5 w-5" /> {repeats} at {formatTime(e.starts_at)}
+          </p>
+        )}
         {e.location && (
           <p>
             {e.location} · {mapUrl && <a href={mapUrl}>Map</a>}
