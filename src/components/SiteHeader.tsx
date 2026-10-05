@@ -1,4 +1,5 @@
 import { ChevronDown, Menu } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
 import { MENU_PAGES, PAGE_ROUTES } from "@/lib/content";
@@ -7,10 +8,7 @@ import { getMenuPages } from "@/lib/site";
 function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2 text-white no-underline">
-      <svg viewBox="0 0 64 72" className="h-9 w-8" aria-hidden="true">
-        <path d="M32 2 60 12v22c0 18-12 30-28 36C16 64 4 52 4 34V12z" fill="#c9a227" />
-        <path d="m32 16 4.4 9.4 10.3 1.1-7.7 7 2.2 10.2L32 38.5l-9.2 5.2L25 33.5l-7.7-7 10.3-1.1z" fill="#0b1d33" />
-      </svg>
+      <Image src="/bobsf-logo-small.png" alt="BOBSF logo" width={240} height={218} priority className="h-11 w-auto" />
       <span className="font-display text-2xl font-bold tracking-wider">BOBSF</span>
     </Link>
   );

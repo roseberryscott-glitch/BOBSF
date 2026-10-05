@@ -15,7 +15,17 @@ import { SectionView } from "./Sections";
 
 // Renders an editable site page. Admins get an "Edit page" button that turns
 // the page itself into the editor, so what they see is what members get.
-export function PageView({ page, isAdmin, logos }: { page: SitePage; isAdmin: boolean; logos: BranchLogos }) {
+export function PageView({
+  page,
+  isAdmin,
+  logos,
+  watermark = false,
+}: {
+  page: SitePage;
+  isAdmin: boolean;
+  logos: BranchLogos;
+  watermark?: boolean;
+}) {
   const router = useRouter();
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState(page);
@@ -91,7 +101,7 @@ export function PageView({ page, isAdmin, logos }: { page: SitePage; isAdmin: bo
       )}
 
       {edit && (
-        <div className="sticky top-14 z-40 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <div className="sticky top-[3.8rem] z-40 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
             <span className="inline-flex items-center gap-2 rounded-full bg-gold/20 px-3 py-1 text-sm font-bold text-navy">
               <Pencil className="h-4 w-4" /> Editing
@@ -150,7 +160,7 @@ export function PageView({ page, isAdmin, logos }: { page: SitePage; isAdmin: bo
               </button>
             </div>
           )}
-          <SectionView section={section} edit={edit} update={(p) => updateSection(i, p)} logos={logos} />
+          <SectionView section={section} edit={edit} update={(p) => updateSection(i, p)} logos={logos} watermark={watermark} />
           {edit && <AddSection onAdd={(t) => insert(i + 1, t)} />}
         </div>
       ))}

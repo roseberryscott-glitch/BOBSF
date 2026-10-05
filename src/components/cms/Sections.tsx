@@ -3,6 +3,7 @@
 import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { BranchBadge } from "@/components/BranchBadge";
 import { BranchLogo } from "@/components/BranchLogo";
+import { Watermark } from "@/components/Watermark";
 import type {
   BranchLogos,
   BranchesSection,
@@ -46,7 +47,7 @@ function replaceAt<T>(list: T[], i: number, patch: Partial<T>) {
 
 // ---------------------------------------------------------------------------
 
-function Hero({ s, edit, update }: Props<HeroSection>) {
+function Hero({ s, edit, update, watermark }: Props<HeroSection> & { watermark?: boolean }) {
   return (
     <section className="hero-bg relative isolate overflow-hidden text-white">
       {s.image && (
@@ -60,6 +61,7 @@ function Hero({ s, edit, update }: Props<HeroSection>) {
         />
       )}
       <div className="stars absolute inset-0 -z-10 opacity-40" aria-hidden="true" />
+      {watermark && <Watermark />}
       <div className="mx-auto max-w-5xl px-4 py-20 sm:py-28">
         <EText
           as="p"
@@ -325,17 +327,19 @@ export function SectionView({
   edit,
   update,
   logos,
+  watermark,
 }: {
   section: Section;
   edit: boolean;
   update: (patch: Partial<Section>) => void;
   logos: BranchLogos;
+  watermark?: boolean;
 }) {
   // Each renderer only receives patches for its own section type.
   const u = update as (patch: object) => void;
   switch (section.type) {
     case "hero":
-      return <Hero s={section} edit={edit} update={u} logos={logos} />;
+      return <Hero s={section} edit={edit} update={u} logos={logos} watermark={watermark} />;
     case "text":
       return <Text s={section} edit={edit} update={u} logos={logos} />;
     case "cards":

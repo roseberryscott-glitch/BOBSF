@@ -36,5 +36,5 @@ export default async function SitePage(props: PageProps<"/[page]">) {
   }
 
   const isAdmin = profile?.status === "approved" && profile.role === "admin";
-  return <PageView page={data} isAdmin={isAdmin} logos={logos} />;
+  return <PageView page={data} isAdmin={isAdmin} logos={logos} watermark={data.slug === "home"} />;
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BranchLogo } from "@/components/BranchLogo";
 import { Messages } from "@/components/Messages";
+import { Watermark } from "@/components/Watermark";
 import { PageView } from "@/components/cms/PageView";
 import { getViewer } from "@/lib/auth";
 import { getGroup, groupName } from "@/lib/groups";
@@ -22,7 +23,7 @@ export default async function Home(props: PageProps<"/">) {
         <div className="mx-auto max-w-5xl px-4">
           <Messages message={sp.message} />
         </div>
-        {page ? <PageView page={page} isAdmin={false} logos={logos} /> : null}
+        {page ? <PageView page={page} isAdmin={false} logos={logos} watermark /> : null}
       </>
     );
   }
@@ -46,8 +47,9 @@ export default async function Home(props: PageProps<"/">) {
 
   return (
     <>
-      <section className="hero-bg relative overflow-hidden text-white">
-        <div className="stars absolute inset-0 opacity-40" aria-hidden="true" />
+      <section className="hero-bg relative isolate overflow-hidden text-white">
+        <Watermark />
+        <div className="stars absolute inset-0 -z-10 opacity-40" aria-hidden="true" />
         <div className="relative mx-auto flex max-w-5xl flex-wrap items-center gap-6 px-4 py-12">
           <BranchLogo groupId={profile.group_id} logos={logos} size={96} />
           <div>
