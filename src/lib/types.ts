@@ -33,7 +33,6 @@ export type Profile = {
   business_website: string | null;
   business_phone: string | null;
   business_description: string | null;
-  date_of_birth: string | null;
   address_line1: string | null;
   address_line2: string | null;
   state: string | null;
@@ -62,11 +61,8 @@ export type DirectoryEntry = {
   business_website: string | null;
   business_phone: string | null;
   business_description: string | null;
-  date_of_birth: string | null;
   address_line1: string | null;
   address_line2: string | null;
   state: string | null;
   postal_code: string | null;
-  // "Month Day" when the member's personal info is visible to you.
-  birthday: string | null;
 };

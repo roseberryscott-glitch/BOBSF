@@ -8,14 +8,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const text = (fd: FormData, k: string, max = 2000) =>
   String(fd.get(k) ?? "").trim().slice(0, max) || null;
 
-function birthDate(fd: FormData) {
-  const v = String(fd.get("date_of_birth") ?? "");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
-  const d = new Date(`${v}T00:00:00Z`);
-  if (Number.isNaN(d.getTime()) || d.getUTCFullYear() < 1900 || d > new Date()) return null;
-  return v;
-}
-
 function website(fd: FormData) {
   const v = text(fd, "business_website", 300);
   if (!v) return null;
@@ -53,7 +45,6 @@ export async function saveProfile(formData: FormData) {
       first_name: firstName,
       last_name: lastName,
       full_name: `${firstName} ${lastName}`,
-      date_of_birth: birthDate(formData),
       member_since: memberSince,
       service_years: text(formData, "service_years", 60),
       bio: text(formData, "bio", 4000),

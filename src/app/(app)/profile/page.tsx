@@ -32,7 +32,6 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
   const group = groupName(p.group_id);
   const thisYear = new Date().getFullYear();
   const years = Array.from({ length: thisYear - 1949 }, (_, i) => thisYear - i);
-  const today = new Date().toISOString().slice(0, 10);
   const isNew = p.member_since === null || p.member_since >= thisYear;
   const [first, last] = splitName(p);
 
@@ -81,20 +80,6 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
               <label className="label" htmlFor="last_name">Last name</label>
               <input className="input" id="last_name" name="last_name" autoComplete="family-name" defaultValue={last} required />
             </div>
-          </div>
-          <div>
-            <label className="label" htmlFor="date_of_birth">Date of birth</label>
-            <input
-              className="input max-w-xs"
-              id="date_of_birth"
-              name="date_of_birth"
-              type="date"
-              min="1900-01-01"
-              max={today}
-              autoComplete="bday"
-              defaultValue={p.date_of_birth ?? ""}
-            />
-            <span className="hint">Other members only ever see the month and day, and only if you choose Public below.</span>
           </div>
           <fieldset className="space-y-2">
             <legend className="label">When did you join BOBSF?</legend>
@@ -191,14 +176,13 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
         <section className="card space-y-5" aria-labelledby="privacy-h">
           <h2 id="privacy-h" className="text-2xl font-bold">Privacy</h2>
           <fieldset className="space-y-2">
-            <legend className="label">My personal info: email, phone, mailing address and birthday</legend>
+            <legend className="label">My personal info: email, phone and mailing address</legend>
             <Choice name="contact_visibility" value="leaders" checked={p.contact_visibility !== "all"}>
               <strong>Private.</strong> Only site admins see it. Your {group} leader can also see your
               phone and email so they can reach you.
             </Choice>
             <Choice name="contact_visibility" value="all" checked={p.contact_visibility === "all"}>
-              <strong>Public.</strong> Members who can see your profile can see it. Your birthday shows
-              as month and day only.
+              <strong>Public.</strong> Members who can see your profile can see it.
             </Choice>
           </fieldset>
           <fieldset className="space-y-2">

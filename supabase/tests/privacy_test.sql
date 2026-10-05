@@ -19,9 +19,9 @@ update public.profiles set role = 'leader' where email = 'leader@x.org';
 update public.profiles set phone = '555-0001' where email = 'm1@x.org';
 update public.profiles set name_visibility = 'all', contact_visibility = 'group', phone = '555-0002' where email = 'm2@x.org';
 -- M1 keeps personal info private (the default); the leader makes theirs public.
-update public.profiles set date_of_birth = '1980-07-04', address_line1 = '1 Main St', city = 'Rockwall', state = 'TX', postal_code = '75087',
+update public.profiles set address_line1 = '1 Main St', city = 'Rockwall', state = 'TX', postal_code = '75087',
   job_title = 'Mechanic', retired = true, business_name = 'Not a business owner' where email = 'm1@x.org';
-update public.profiles set contact_visibility = 'all', date_of_birth = '1970-11-11', address_line1 = '9 Oak Ln',
+update public.profiles set contact_visibility = 'all', address_line1 = '9 Oak Ln',
   is_business_owner = true, business_name = 'Lee Lawn Care' where email = 'leader@x.org';
 
 create function pg_temp.act_as(uid text) returns void language sql as $$
@@ -44,11 +44,9 @@ select pg_temp.check((select phone from member_directory() where full_name = 'Ni
 select pg_temp.check(not exists (select 1 from member_directory() where full_name = 'Fran Friend'), 'group-only name hidden from other groups');
 select pg_temp.check(not exists (select 1 from member_directory() where full_name = 'Pat Pending'), 'pending members hidden');
 select pg_temp.check((select count(*) from forums) = 2, 'member sees public + own branch forum');
-select pg_temp.check((select birthday from member_directory() where full_name = 'Lee Leader') = 'November 11', 'public birthday shown as month and day');
-select pg_temp.check((select date_of_birth from member_directory() where full_name = 'Lee Leader') is null, 'birth year never shown to other members');
 select pg_temp.check((select address_line1 from member_directory() where full_name = 'Lee Leader') = '9 Oak Ln', 'public address shown');
+select pg_temp.check(not exists (select 1 from information_schema.columns where table_name = 'profiles' and column_name = 'date_of_birth'), 'date of birth is not stored');
 select pg_temp.check((select business_name from member_directory() where full_name = 'Lee Leader') = 'Lee Lawn Care', 'business shown for owners');
-select pg_temp.check((select date_of_birth from member_directory() where id = auth.uid()) = '1980-07-04', 'member sees own date of birth');
 update profiles set first_name = 'Maxwell' where id = auth.uid();
 select pg_temp.check((select full_name from profiles where id = auth.uid()) = 'Maxwell Army', 'display name follows first and last name');
 update profiles set first_name = 'Max' where id = auth.uid();
@@ -67,7 +65,6 @@ select pg_temp.check((select phone from member_directory() where full_name = 'Ma
 select pg_temp.check((select phone from member_directory() where full_name = 'Nia Navy') is null, 'leader cannot see other branch group-only contact');
 select pg_temp.check((select count(*) from profiles) = 1, 'leader reads only own full profile row');
 select pg_temp.check((select coalesce(address_line1, city) from member_directory() where full_name = 'Max Army') is null, 'private address and city hidden from leader');
-select pg_temp.check((select birthday from member_directory() where full_name = 'Max Army') is null, 'private birthday hidden from leader');
 select pg_temp.check((select email from member_directory() where full_name = 'Max Army') = 'm1@x.org', 'leader still sees private member email');
 
 -- Friend
@@ -166,7 +163,7 @@ select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
 select admin_set_status('00000000-0000-0000-0000-00000000000f', 'approved');
 select pg_temp.check((select status from profiles where email = 'p@x.org') = 'approved', 'admin approves');
 select pg_temp.check((select count(*) from member_directory()) = 6, 'admin sees everyone approved');
-select pg_temp.check((select address_line1 || ' ' || date_of_birth from member_directory() where full_name = 'Max Army') = '1 Main St 1980-07-04', 'admin sees private personal info');
+select pg_temp.check((select address_line1 from member_directory() where full_name = 'Max Army') = '1 Main St', 'admin sees private personal info');
 select pg_temp.check((select business_name from member_directory() where full_name = 'Max Army') is null, 'business details hidden when not an owner');
 select pg_temp.check((select retired and job_title = 'Mechanic' from member_directory() where full_name = 'Max Army'), 'job and retired shown');
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000d');

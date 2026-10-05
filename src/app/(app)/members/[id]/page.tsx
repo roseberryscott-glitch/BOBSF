@@ -48,12 +48,6 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
           {address.length > 0 && (
             <div><dt className="font-semibold">Mailing address</dt><dd>{address.map((line) => <span key={line} className="block">{line}</span>)}</dd></div>
           )}
-          {m.birthday && (
-            <div>
-              <dt className="font-semibold">Birthday</dt>
-              <dd>{m.date_of_birth ? new Date(`${m.date_of_birth}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : m.birthday}</dd>
-            </div>
-          )}
           {m.bio && (<div><dt className="font-semibold">About</dt><dd className="whitespace-pre-line">{m.bio}</dd></div>)}
         </dl>
         {m.is_business_owner && m.business_name && (
