@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
 import { MENU_PAGES, PAGE_ROUTES } from "@/lib/content";
+import { MobileMenu } from "./MobileMenu";
 import { getMenuPages } from "@/lib/site";
 
 function Logo() {
@@ -116,11 +117,14 @@ export async function SiteHeader() {
         </div>
 
         {/* Phones and tablets */}
-        <details className="group ml-auto min-[1140px]:hidden">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-lg px-3 font-semibold hover:bg-white/10">
-            <Menu className="h-6 w-6" /> Menu
-            <Badge count={pendingCount} label={pendingLabel} />
-          </summary>
+        <MobileMenu
+          summary={
+            <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-lg px-3 font-semibold hover:bg-white/10">
+              <Menu className="h-6 w-6" /> Menu
+              <Badge count={pendingCount} label={pendingLabel} />
+            </summary>
+          }
+        >
           <nav aria-label="Main" className="absolute inset-x-0 top-full border-t border-white/10 bg-navy px-4 pb-4 shadow-2xl">
             {[...memberLinks, ...aboutLinks, ...accountLinks].map((l) => (
               <Link key={l.href} href={l.href} className="flex items-center border-b border-white/10 py-3 text-lg font-semibold text-white no-underline">
@@ -134,7 +138,7 @@ export async function SiteHeader() {
               </form>
             )}
           </nav>
-        </details>
+        </MobileMenu>
       </div>
     </header>
   );
